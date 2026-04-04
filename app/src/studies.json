@@ -1,0 +1,498 @@
+[
+  {
+    "id": 1,
+    "authors": "Forsyth et al.",
+    "year": 2020,
+    "tier": 1,
+    "journal": "J Strength Cond Res",
+    "topic": "Pop-up & landing skills — PRISMA systematic review, 10 studies, 299 surfers"
+  },
+  {
+    "id": 2,
+    "authors": "Donaldson et al.",
+    "year": 2021,
+    "tier": 1,
+    "journal": "Strength and Conditioning Journal",
+    "topic": "Scoping review of surf training methods"
+  },
+  {
+    "id": 3,
+    "authors": "Furness et al.",
+    "year": 2022,
+    "tier": 1,
+    "journal": "Sports (MDPI)",
+    "topic": "Scoping review of hydration in surfers"
+  },
+  {
+    "id": 4,
+    "authors": "Behm, Drinkwater, Willardson & Cowley",
+    "year": 2011,
+    "tier": 1,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Core stability — NSCA systematic review"
+  },
+  {
+    "id": 5,
+    "authors": "Behm, Drinkwater, Willardson & Cowley",
+    "year": 2010,
+    "tier": 1,
+    "journal": "Applied Physiology, Nutrition & Metabolism",
+    "topic": "Core instability resistance training — evidence review"
+  },
+  {
+    "id": 6,
+    "authors": "Maffiuletti et al.",
+    "year": 2016,
+    "tier": 1,
+    "journal": "European Journal of Applied Physiology",
+    "topic": "Rate of force development — mechanisms and methodological considerations"
+  },
+  {
+    "id": 7,
+    "authors": "Liu et al.",
+    "year": 2025,
+    "tier": 1,
+    "journal": "Behavioral Sciences",
+    "topic": "Mindfulness and sport performance — Bayesian multilevel meta-analysis"
+  },
+  {
+    "id": 8,
+    "authors": "Furley, Dörr & Loffing",
+    "year": 2018,
+    "tier": 1,
+    "journal": "Laterality",
+    "topic": "Stance dominance in surfing — 394 surfers + 2,552 competitive wave scores"
+  },
+  {
+    "id": 9,
+    "authors": "Parsonage et al.",
+    "year": 2020,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Pop-up strength profiling — 18 surfers (9M/9F)"
+  },
+  {
+    "id": 10,
+    "authors": "Borgonovo-Santos et al.",
+    "year": 2021,
+    "tier": 2,
+    "journal": "Sensors",
+    "topic": "Pop-up kinematics — body type vs skill"
+  },
+  {
+    "id": 11,
+    "authors": "Mata, Oliver, Jagim & Jones",
+    "year": 2016,
+    "tier": 2,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Mixed-method strength programming for female athletes"
+  },
+  {
+    "id": 12,
+    "authors": "Farley, Abbiss & Sheppard",
+    "year": 2017,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Paddle performance and physical characteristics of elite surfers"
+  },
+  {
+    "id": 13,
+    "authors": "Farley, Harris & Kilding",
+    "year": 2012,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Physiological demands of recreational surfing"
+  },
+  {
+    "id": 14,
+    "authors": "Farley et al.",
+    "year": 2013,
+    "tier": 2,
+    "journal": "J Aust Strength & Conditioning",
+    "topic": "Conditioning for surfing — paddle and fitness testing"
+  },
+  {
+    "id": 15,
+    "authors": "Sheppard et al.",
+    "year": 2012,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Physical and performance profiling of elite surfers — Surfing Australia HPC"
+  },
+  {
+    "id": 16,
+    "authors": "Sheppard et al.",
+    "year": 2013,
+    "tier": 2,
+    "journal": "Int J Sports Science & Coaching",
+    "topic": "Training periodization for competitive surfers"
+  },
+  {
+    "id": 17,
+    "authors": "Barlow et al.",
+    "year": 2014,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Activity profile of recreational surfing — 39 surfers, 60 sessions, GPS + HR"
+  },
+  {
+    "id": 18,
+    "authors": "Tran et al.",
+    "year": 2015,
+    "tier": 2,
+    "journal": "Int J Sports Science & Coaching",
+    "topic": "Core strength and surfing performance"
+  },
+  {
+    "id": 19,
+    "authors": "Secomb et al.",
+    "year": 2013,
+    "tier": 2,
+    "journal": "J Aust Strength & Conditioning",
+    "topic": "Explosive lower-body strength and surfing performance"
+  },
+  {
+    "id": 20,
+    "authors": "Lundgren et al.",
+    "year": 2014,
+    "tier": 2,
+    "journal": "Int J Sports Science & Coaching",
+    "topic": "Activity profiling of elite competitive surfing"
+  },
+  {
+    "id": 21,
+    "authors": "Lundgren et al.",
+    "year": 2013,
+    "tier": 2,
+    "journal": "J Aust Strength & Conditioning",
+    "topic": "Physical and performance characteristics of competitive surfers"
+  },
+  {
+    "id": 22,
+    "authors": "Bruton, O'Dwyer & Adams",
+    "year": 2013,
+    "tier": 2,
+    "journal": "Int J Performance Analysis in Sport",
+    "topic": "Neuromuscular characteristics of surfers"
+  },
+  {
+    "id": 23,
+    "authors": "Stone et al.",
+    "year": 2021,
+    "tier": 2,
+    "journal": "Int J Exercise Science",
+    "topic": "Competitive vs recreational surfer physical profiles"
+  },
+  {
+    "id": 24,
+    "authors": "Monaco et al.",
+    "year": 2023,
+    "tier": 2,
+    "journal": "Journal of Sports Sciences",
+    "topic": "6-week home exercise programme for recreational surfers"
+  },
+  {
+    "id": 25,
+    "authors": "Gosney et al.",
+    "year": 2025,
+    "tier": 2,
+    "journal": "Sports Engineering",
+    "topic": "IMU technology for sprint paddle technique assessment"
+  },
+  {
+    "id": 26,
+    "authors": "Denny, Parsonage et al.",
+    "year": 2026,
+    "tier": 2,
+    "journal": "Int J Sports Science & Coaching",
+    "topic": "Sprint paddle technique — most recent study in library"
+  },
+  {
+    "id": 27,
+    "authors": "Ferrier, Harris & Sheppard",
+    "year": 2014,
+    "tier": 2,
+    "journal": "J Aust Strength & Conditioning",
+    "topic": "Strength benchmarks for surfers — Surfing Australia HPC"
+  },
+  {
+    "id": 28,
+    "authors": "Loveless & Minahan",
+    "year": 2010,
+    "tier": 2,
+    "journal": "European Journal of Sport Science",
+    "topic": "Effect of paddling experience on physiological responses"
+  },
+  {
+    "id": 29,
+    "authors": "Freeman et al.",
+    "year": 2013,
+    "tier": 2,
+    "journal": "J Aust Strength & Conditioning",
+    "topic": "Upper body pulling strength benchmarks for competitive surfers"
+  },
+  {
+    "id": 30,
+    "authors": "Meir, Lowdon & Davie",
+    "year": 1991,
+    "tier": 2,
+    "journal": "Australian J Science & Medicine in Sport",
+    "topic": "Heart rate and oxygen uptake during recreational surfing"
+  },
+  {
+    "id": 31,
+    "authors": "Furness et al.",
+    "year": 2014,
+    "tier": 2,
+    "journal": "Int J Aquatic Research and Education",
+    "topic": "Recreational surfing demographics and injury profile — 432 surfers"
+  },
+  {
+    "id": 32,
+    "authors": "Garcia, Vaghetti & Peyré-Tartaruga",
+    "year": 2008,
+    "tier": 2,
+    "journal": "R. bras. Ci. e Mov.",
+    "topic": "Metabolic and physiological characteristics of surfers"
+  },
+  {
+    "id": 33,
+    "authors": "Haff & Nimphius",
+    "year": 2012,
+    "tier": 2,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Training principles for power and strength development"
+  },
+  {
+    "id": 34,
+    "authors": "Harris et al.",
+    "year": 2000,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Short-term performance effects of high power, high force or combined weight training"
+  },
+  {
+    "id": 35,
+    "authors": "Kibele & Behm",
+    "year": 2009,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Instability resistance training as alternative to plyometric training"
+  },
+  {
+    "id": 36,
+    "authors": "Kaewcham & Tongtako",
+    "year": 2025,
+    "tier": 2,
+    "journal": "Sports Medicine and Health Science",
+    "topic": "Core stability training and surf performance — Chulalongkorn University"
+  },
+  {
+    "id": 37,
+    "authors": "Nessler et al.",
+    "year": 2023,
+    "tier": 2,
+    "journal": "Int J Exercise Science",
+    "topic": "Physiological differences between surfer skill levels"
+  },
+  {
+    "id": 38,
+    "authors": "Atencio et al.",
+    "year": 2021,
+    "tier": 2,
+    "journal": "Int J Exercise Science",
+    "topic": "Surf-specific fitness characteristics across experience levels"
+  },
+  {
+    "id": 39,
+    "authors": "Dann et al.",
+    "year": 2024,
+    "tier": 2,
+    "journal": "Int J Sports Science & Coaching",
+    "topic": "Mental performance skills in competitive surfing"
+  },
+  {
+    "id": 40,
+    "authors": "Lange-Smith et al.",
+    "year": 2024,
+    "tier": 2,
+    "journal": "Int J Sport and Exercise Psychology",
+    "topic": "Psychological skills and competitive surfing performance"
+  },
+  {
+    "id": 41,
+    "authors": "Bordo, Costanzo & Villani",
+    "year": 2025,
+    "tier": 2,
+    "journal": "BMC Psychology",
+    "topic": "Mental health and wellbeing in surf sports"
+  },
+  {
+    "id": 42,
+    "authors": "Dohme et al.",
+    "year": 2017,
+    "tier": 2,
+    "journal": "Sport, Exercise & Performance Psychology",
+    "topic": "Psychological skills of elite action sport athletes"
+  },
+  {
+    "id": 43,
+    "authors": "Paillard et al.",
+    "year": 2011,
+    "tier": 2,
+    "journal": "European J Applied Physiology",
+    "topic": "Postural balance in surfers vs non-surfers"
+  },
+  {
+    "id": 44,
+    "authors": "Taylor et al.",
+    "year": 2004,
+    "tier": 2,
+    "journal": "J Science & Medicine in Sport",
+    "topic": "Foam roller myofascial release — physiological effects"
+  },
+  {
+    "id": 45,
+    "authors": "Helms, Cronin, Storey & Zourdos",
+    "year": 2016,
+    "tier": 2,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Application of RPE-based rating scales in resistance training"
+  },
+  {
+    "id": 46,
+    "authors": "Lawrence & Carlson",
+    "year": 2015,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Instability resistance training effects on muscle activation"
+  },
+  {
+    "id": 47,
+    "authors": "Vaghetti et al.",
+    "year": 2007,
+    "tier": 2,
+    "journal": "R. bras. Ci. e Mov.",
+    "topic": "Surfing performance and physiological variables"
+  },
+  {
+    "id": 48,
+    "authors": "Herdy et al.",
+    "year": 2016,
+    "tier": 2,
+    "journal": "Brazilian Cardiology Journal",
+    "topic": "Cardiorespiratory fitness reference values for Brazilian athletes"
+  },
+  {
+    "id": 49,
+    "authors": "Eurich et al.",
+    "year": 2010,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Pop-up power — bodyweight loading and rate of force development"
+  },
+  {
+    "id": 50,
+    "authors": "Stastny et al.",
+    "year": 2016,
+    "tier": 2,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Muscle imbalances and unilateral training in athletes"
+  },
+  {
+    "id": 51,
+    "authors": "Behm & Anderson",
+    "year": 2006,
+    "tier": 2,
+    "journal": "J Strength Cond Res",
+    "topic": "Instability and muscle activation"
+  },
+  {
+    "id": 52,
+    "authors": "Almeida, Laíns & Veríssimo",
+    "year": 2009,
+    "tier": 3,
+    "journal": "Acta Med Port",
+    "topic": "First published study on surf injuries in Portugal"
+  },
+  {
+    "id": 53,
+    "authors": "Axel",
+    "year": 2013,
+    "tier": 3,
+    "journal": "California State University",
+    "topic": "Surf fitness and training — Master's thesis"
+  },
+  {
+    "id": 54,
+    "authors": "Baldino",
+    "year": 2015,
+    "tier": 3,
+    "journal": "Universidad Nacional de La Plata",
+    "topic": "Surfing biomechanics — practitioner thesis"
+  },
+  {
+    "id": 55,
+    "authors": "Hunt",
+    "year": 2004,
+    "tier": 3,
+    "journal": "University of Hawai'i",
+    "topic": "Surf performance factors — Master's thesis"
+  },
+  {
+    "id": 56,
+    "authors": "Cook",
+    "year": 1997,
+    "tier": 3,
+    "journal": "NSCA Journal",
+    "topic": "Functional movement and athletic development — practitioner"
+  },
+  {
+    "id": 57,
+    "authors": "Graham",
+    "year": 2002,
+    "tier": 3,
+    "journal": "Strength & Conditioning Journal",
+    "topic": "Surfing conditioning — practitioner review"
+  },
+  {
+    "id": 58,
+    "authors": "Airaksinen",
+    "year": 2013,
+    "tier": 3,
+    "journal": "Expert consensus",
+    "topic": "Back pain and physiotherapy — physiotherapy expert consensus"
+  },
+  {
+    "id": 59,
+    "authors": "Patterson",
+    "year": 2002,
+    "tier": 3,
+    "journal": "Surfing Medicine",
+    "topic": "Medical profile of South African elite surfers"
+  },
+  {
+    "id": 60,
+    "authors": "Metcalfe",
+    "year": 2013,
+    "tier": 3,
+    "journal": "Professional Strength & Conditioning",
+    "topic": "Practical surf conditioning — practitioner article"
+  },
+  {
+    "id": 61,
+    "authors": "Tran & Sheppard",
+    "year": 2012,
+    "tier": 3,
+    "journal": "NSCA Performance Training Journal",
+    "topic": "Surf-specific training — practitioner guide"
+  },
+  {
+    "id": 62,
+    "authors": "Pratt",
+    "year": 2013,
+    "tier": 3,
+    "journal": "Review Article",
+    "topic": "Surfing injury epidemiology — narrative review"
+  }
+]

@@ -1,0 +1,5 @@
+node_modules/
+.env
+*.crdownload
+dist/
+.DS_Store
