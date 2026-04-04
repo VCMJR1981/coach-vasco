@@ -13,14 +13,14 @@
       "use": "@vercel/node"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "/app/api/:path*"
+      "src": "/api/(.*)",
+      "dest": "/app/api/chat.js"
     },
     {
-      "source": "/(.*)",
-      "destination": "/app/dist/index.html"
+      "src": "/(.*)",
+      "dest": "/app/dist/index.html"
     }
   ]
 }
