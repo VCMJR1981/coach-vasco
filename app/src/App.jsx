@@ -1287,7 +1287,7 @@ const TECHNIQUE_REGISTRY = [
     phases:['Read section — notice shoulder flattening','Initiation — shift to back foot and toeside rail front arm points to pocket','Rail load — compress drive rail through arc eyes on foam','Rebound — subtle weight to front foot near foam redirect down line','Exit — extend slightly maintain rail flow into next move'],
     keyVars:['Height — top third only','Degree of back-foot pressure','Upper-body rotation direction and timing','Where to finish — near foam for roundhouse wide for carve'],
     errors:[{c:'Initiating too low',cue:'Start cutback higher — top third of face only'},{c:'Waiting too long dead shoulder',cue:'Look and point front arm to foam — cut back earlier'},{c:'Board skidding',cue:'Bend first then lean — feel rail bite before adding rotation'},{c:'Over-rotating falling inside',cue:'Rotate to target then freeze chest — let board finish underneath you'},{c:'No power off rebound',cue:'Stay loaded through middle, shift gently to front foot as you hit foam'}],
-    cues:{beginner:['Race ahead then draw big S back to whitewater','Front arm points to pocket eyes follow your hand','Bend knees like a squat before you turn'],intermediate:['Top third only — no cutbacks from the flats','Back foot to start the carve front foot to finish','Draw one smooth arc then small rebound off foam'],advanced:['Match turn radius to section','Continuous rail engagement time rebound to hit most powerful foam']},
+    cues:{beginner:['Race ahead then draw big S back to whitewater','Front arm points to pocket eyes follow your hand','Bend knees like a squat before you turn'],intermediate:['Top third only — no cutbacks from the flats','Chest over front knee to initiate — back foot drives through the finish','Draw one smooth arc then small rebound off foam'],advanced:['Match turn radius to section','Continuous rail engagement time rebound to hit most powerful foam']},
     prerequisites:['Trimming along open face','Functional frontside bottom turn','Reading when shoulder weakens'],
     next:['Roundhouse cutback','Cutback into rebound snap','Linking cutbacks with pumps'],
     surfskatEq:'Forehand carve on bank, drive up wall on toes, arc back toward pocket cone, rebound, roll out on front foot',
@@ -2380,6 +2380,19 @@ function schedulePostSessionNotification(session) {
 }
 
 // Compute Today's Focus from session history + assessment
+function getTodaysFocusDescription(techniqueName, level) {
+  const t = TECHNIQUE_REGISTRY.find(t =>
+    t.name.toLowerCase() === techniqueName.toLowerCase() ||
+    (t.aliases || []).some(a => a.toLowerCase() === techniqueName.toLowerCase())
+  );
+  if (!t) return null;
+  let bucket = 'beginner';
+  if (level && (level.includes('Level 2') || level.includes('Level 3'))) bucket = 'intermediate';
+  if (level && level.includes('Level 3')) bucket = 'advanced';
+  const cues = t.cues?.[bucket] || t.cues?.beginner || [];
+  return cues.slice(0, 2).join(' · ');
+}
+
 function getTodaysFocus(userProfile, sessions) {
   if (!userProfile) return null;
   const level = userProfile.cstmLevel || '';
@@ -2387,10 +2400,7 @@ function getTodaysFocus(userProfile, sessions) {
   const recent = completed.slice(-5);
   const lastSession = sessions[sessions.length - 1];
 
-  // If last session has a post-session observation, use its implied next step
   if (lastSession?.observation) {
-    const obs = lastSession.observation.toLowerCase();
-    // Extract carry-forward technique from last coaching note
     const focus = lastSession.focus;
     if (focus) {
       return {
@@ -2398,11 +2408,11 @@ function getTodaysFocus(userProfile, sessions) {
         reason: 'Continuing from your last session',
         source: 'session',
         lastNote: lastSession.observation,
+        description: getTodaysFocusDescription(focus, level),
       };
     }
   }
 
-  // Check for repeated low ratings on a technique — needs more work
   const focusCounts = {};
   recent.forEach(s => {
     if (s.focus) {
@@ -2420,14 +2430,12 @@ function getTodaysFocus(userProfile, sessions) {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
       source: 'pattern',
+      description: getTodaysFocusDescription(struggling[0], level),
     };
   }
 
-  // Fall back to assessment priority, filtered to level
   const chips = getTechniqueChips('surf', level, 'training');
   const priority = userProfile.priorities?.[0]?.label;
-
-  // Map broad priority to specific technique
   const priorityMap = {
     'Water Time': chips[0],
     'Paddle Strength': 'Paddling',
@@ -2438,16 +2446,119 @@ function getTodaysFocus(userProfile, sessions) {
     'Start Surfskate': 'Pumping',
     'More Surfskate Sessions': 'Frontside carve',
   };
-
   const technique = priorityMap[priority] || chips[0] || 'Pop-Up';
   return {
     technique,
     reason: 'Based on your assessment',
     source: 'assessment',
+    description: getTodaysFocusDescription(technique, level),
   };
 }
 
 // ─── SURF SCORE ──────────────────────────────────────────────────────────────
+// ─── POST-SESSION ERROR REGISTRY ─────────────────────────────────────────────
+const POST_SESSION_ERRORS = {
+  'Pop-Up': [
+    { id:'sp_error_1', label:'Rushing the Pop-Up', cues:['you spring up before the board is stable','the movement feels rushed or tense'], triad:{ technique:'Slow controlled pop-ups on flat ground — 3x8, focus on smooth foot placement.', fitness:'Plank-to-stand drill 3x10 + Incline power push-ups 3x10.', mental:'Catch the wave first, then rise smoothly.' }},
+    { id:'sp_error_2', label:'Incorrect Foot Placement', cues:['front foot lands too far forward or too far back','feet land off-center or too narrow'], triad:{ technique:'Mark your stance on the floor and repeat pop-ups to same spots — 3x10.', fitness:'Surf burpees — 3x10.', mental:'Bring your feet under you, not behind you.' }},
+    { id:'sp_error_3', label:'Poor Upper Body Mechanics', cues:['hands hold the board rails during the movement','arms and chest do not work together to drive the pop-up'], triad:{ technique:'Pop-up with strong chest lift — arms close to ribs, elbows to sky, no rail holding. 3x8.', fitness:'Cobra to pop-up — 3x12. Hold cobra first then move.', mental:'Chest up, then step through.' }},
+    { id:'sp_error_4', label:'Poor Timing', cues:['you pop up before the nose points down the wave face','you stand too late and finish on the flats with no speed'], triad:{ technique:'Partner cue drill — partner lifts back of board as signal. 3x6, focus on timing not speed.', fitness:'Balance board pop-up drill — 3x10.', mental:'Break the ledge, then pop up.' }},
+  ],
+  'Angled Take-Off': [
+    { id:'ap_error_1', label:'Too Much Board Angle', cues:['the board is angled too far sideways before take-off','you drift off the shoulder or miss the wave entirely'], triad:{ technique:'Beach drill — subtle angle only on small slope. 3x8.', fitness:'Pop-up side drill 3x8 each side — lie in center of V, pop-up and exaggerate front foot toward end of V.', mental:'Paddle for position, angle on the last 3 strokes.' }},
+    { id:'ap_error_2', label:'Poor Arm Position', cues:['chest and shoulders not aligned with intended direction','arms do not help guide the glide or rotation'], triad:{ technique:'Paddle-to-set drill — open shoulders and place hands symmetrically. 3x10.', fitness:'Angled push-ups — 3x12.', mental:'Open the shoulders toward the line before you stand.' }},
+    { id:'ap_error_3', label:'Poor Timing', cues:['you pop up before the wave has enough push','you wait too long and lose the clean diagonal line'], triad:{ technique:'Partner lift drill — partner lifts back of board as timing signal. 3x6.', fitness:'Balance board pop-up — 3x10.', mental:'Feel the glide, then stand.' }},
+    { id:'ap_error_4', label:'Wave Reading Problem', cues:['you choose the wrong wave for an angled take-off','wave shape or speed does not match the angle'], triad:{ technique:'Peak to angle commitment — call left/right before paddling, rotate last 3 paddles, pop already angled. Abort if no early decision. 3x6-8.', fitness:'Reactive angle starts from prone responding to left/right cues — 3x30-40s.', mental:'Decide early. Angle before you stand.' }},
+  ],
+  'Frontside Pumping': [
+    { id:'fp_error_1', label:'Standing Too Stiff', cues:['legs stay extended with minimal compression','no visible up/down rhythm during pumping'], triad:{ surfskate:'Compression rhythm drill — exaggerate deep compression before every extension. No visible change = rep does not count. 3x10.', fitness:'Dynamic squat pulses 3 down 1 up — 3x12.', mental:'Compress to create speed.' }},
+    { id:'fp_error_2', label:'Pushing With the Foot', cues:['you push the ground to maintain speed','loss of balance when relying only on pumping'], triad:{ surfskate:'No-push start drill — generate speed only through pumping from standstill. Push = restart. 3x6.', fitness:'Single-leg balance slight knee bend + rotation — 3x30s each side.', mental:'Speed comes from movement, not pushing.' }},
+    { id:'fp_error_3', label:'Weak Upper-Body Engagement', cues:['arms move late or not at all','torso stays square and disconnected from the pump'], triad:{ surfskate:'Shoulder-led pump drill — initiate every pump with exaggerated shoulder rotation before legs follow. 3x8.', fitness:'Band rotational pulls diagonal — 3x12 each side.', mental:'Shoulders lead, legs follow.' }},
+    { id:'fp_error_4', label:'Poor Body Orientation', cues:['hips remain closed or misaligned with direction','board changes direction but body does not follow'], triad:{ surfskate:'Open stance line drill — keep hips and knees facing direction entire time. Hips close = stop and reset. 3x10.', fitness:'Hip and thoracic rotation combo — 3x8 each side.', mental:'Hips define direction.' }},
+    { id:'fp_error_5', label:'Poor Timing of Pump', cues:['you pump on flat sections instead of during direction change','no speed gain despite correct movement shape'], triad:{ surfskate:'Timing pump drill — only pump during rail-to-rail transition. Flat pump = reset. 3x8.', fitness:'Lateral rebound jumps — 3x12.', mental:'Load before. Release through.' }},
+    { id:'fp_error_6', label:'Incorrect Weight Distribution', cues:['weight stays on back foot with no forward projection','speed appears briefly but dies quickly'], triad:{ surfskate:'Front-back flow drill — compress slightly back then extend forward into front foot. Static weight = reset. 3x10.', fitness:'Split squat with forward drive — 3x10 each side.', mental:'Back to load. Front to go.' }},
+    { id:'fp_error_7', label:'Lack of Rail Engagement', cues:['board stays flat with minimal edge angle','pumping feels like bouncing instead of carving'], triad:{ surfskate:'Rail-to-rail drill — exaggerate deep rail engagement each turn. Flat wheels = slow down and reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Use the rail, not the flat.' }},
+  ],
+  'Backside Pumping': [
+    { id:'bp_error_1', label:'Too Much Back-Foot Bias', cues:['pressure stays on back leg with no forward projection','board stalls or loses speed'], triad:{ surfskate:'Back-foot release drill — load back then transfer forward on extension. Stays back = reset. 3x10.', fitness:'Split squat with forward drive — 3x10 each side.', mental:'Load back. Move forward.' }},
+    { id:'bp_error_2', label:'Poor Back Foot Placement', cues:['back foot too far forward limits control','difficulty engaging tail and rail'], triad:{ surfskate:'Fixed stance drill — back foot on tail, do not adjust. Moves = restart. 3x8.', fitness:'Single-leg balance with rotation — 3x30s each side.', mental:'Set it. Keep it.' }},
+    { id:'bp_error_3', label:'Poor Shoulder-Hip-Head Rotation', cues:['shoulders stay closed or rotate too late','head does not lead direction'], triad:{ surfskate:'Head-lead rotation drill — head then shoulders then hips. Late = reset. 3x8.', fitness:'Band rotational pulls — 3x12 each side.', mental:'Head leads everything.' }},
+    { id:'bp_error_4', label:'Passive Upper Body', cues:['arms are inactive or disconnected','lack of rhythm in upper body'], triad:{ surfskate:'Arm rhythm drill — exaggerate arm movement toward back following leg extension. Arms stop = stop rep. 3x10.', fitness:'Band rows — 3x15.', mental:'Arms follow the rhythm.' }},
+    { id:'bp_error_5', label:'Lack of Compression', cues:['you stay upright with minimal flexion','no visible load and release'], triad:{ surfskate:'Deep compression drill — exaggerate low position before each pump and extension. No height change = no rep. 3x10.', fitness:'Tempo squats 3 down 1 up — 3x12.', mental:'Go low to go fast.' }},
+    { id:'bp_error_6', label:'Poor Timing of Pump', cues:['pumping happens after the turn','no acceleration through transitions'], triad:{ surfskate:'Timing drill — pump only during rail transition. Flat pump = reset. 3x8.', fitness:'Lateral rebound jumps — 3x12.', mental:'Through the turn, not after.' }},
+    { id:'bp_error_7', label:'Lack of Rail Engagement', cues:['board stays flat during movement','turns feel shallow and ineffective'], triad:{ surfskate:'Rail commitment drill — exaggerate edge angle. Flat board = slow down and reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Trust the rail.' }},
+  ],
+  'Frontside Bottom Turn': [
+    { id:'fbt_error_1', label:'Wrong Turn Depth', cues:['turn too deep for soft waves or too shallow for steep waves','end position does not match the section'], triad:{ surfskate:'Depth control drill — alternate shallow and deep on marked lines. Wrong line = reset. 3x8.', fitness:'Lateral squat holds — 3x20s each side.', mental:'Adapt depth, do not repeat habit.' }},
+    { id:'fbt_error_2', label:'Poor Compression and Body Position', cues:['you stay too tall entering the turn','lack of visible load before direction change'], triad:{ surfskate:'Low entry drill — compress before initiating, maintain load through turn. No compression = no rep. 3x8.', fitness:'Tempo squats 3 down 1 up — 3x12.', mental:'Load before you turn.' }},
+    { id:'fbt_error_3', label:'Leaning Without Speed', cues:['rail engagement happens before speed is built','board bogs or loses drive'], triad:{ surfskate:'Speed-then-rail drill — generate speed first then increase rail angle. No speed = abort. 3x6.', fitness:'Single-leg balance with reach — 3x30s each side.', mental:'Speed first, rail second.' }},
+    { id:'fbt_error_4', label:'Late Redirection', cues:['line runs too far down the shoulder','turn happens too late to connect with the section'], triad:{ surfskate:'Early redirect drill — initiate turn earlier on marked line. Late = reset. 3x8.', fitness:'Agility cone cuts — 3x20s.', mental:'Turn early, stay connected.' }},
+    { id:'fbt_error_5', label:'Poor Rotation Timing', cues:['upper body rotates too late or not at all','board turns before body leads'], triad:{ surfskate:'Head-led bottom turn drill — head then shoulders then hips. Late = reset. 3x8.', fitness:'Rotational band pulls — 3x12 each side.', mental:'Lead the turn, do not follow it.' }},
+    { id:'fbt_error_6', label:'Flat Rail Transition', cues:['board stays flat entering or exiting the turn','lack of clear rail-to-rail engagement'], triad:{ surfskate:'Rail-to-rail drill — exaggerate clear edge transition. Flat entry or exit = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Edge to edge.' }},
+    { id:'fbt_error_7', label:'No Projection Out of the Turn', cues:['board exits turn without speed or direction','next maneuver feels forced or disconnected'], triad:{ surfskate:'Projection drill — aim each bottom turn toward top third target. No direction = failed rep. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Turn to go somewhere.' }},
+  ],
+  'Backside Bottom Turn': [
+    { id:'bbt_error_1', label:'Wrong Turn Depth', cues:['turn too deep for soft waves or too shallow for steep waves','end position does not match the section'], triad:{ surfskate:'Depth control drill — alternate shallow and deep on marked lines. Wrong line = reset. 3x8.', fitness:'Lateral squat holds — 3x20s each side.', mental:'Adapt depth, do not repeat habit.' }},
+    { id:'bbt_error_2', label:'Too Much Front-Foot Weight', cues:['weight shifts forward causing loss of drive','board bogs or nose dips'], triad:{ surfskate:'Heel pressure drill — exaggerate heel-side loading through turn. Flattens = reset. 3x8.', fitness:'Single-leg RDL hold — 3x20s each side.', mental:'Heels control the turn.' }},
+    { id:'bbt_error_3', label:'Poor Upper-Body Rotation', cues:['shoulders stay closed or rotate late','front arm does not guide direction'], triad:{ surfskate:'Reach-and-rotate drill — lead with front arm and head before board moves. Late = reset. 3x8.', fitness:'Band rotational pulls — 3x12 each side.', mental:'Reach, then turn.' }},
+    { id:'bbt_error_4', label:'Lack of Commitment to Line', cues:['mid-turn corrections and hesitation','loss of speed during direction change'], triad:{ surfskate:'Single-line commitment drill — choose line early and hold it. Any correction = reset. 3x8.', fitness:'Agility cuts — 3x20s.', mental:'Commit and hold.' }},
+    { id:'bbt_error_5', label:'Lack of Compression', cues:['upright posture through the turn','no visible load before direction change'], triad:{ surfskate:'Low entry drill — exaggerate compression before initiating. No compression = no rep. 3x8.', fitness:'Tempo squats — 3x12.', mental:'Load before turning.' }},
+    { id:'bbt_error_6', label:'Poor Timing', cues:['turn happens too late in the section','missed opportunity to connect with the wave'], triad:{ surfskate:'Early timing drill — initiate earlier on marked section. Late = reset. 3x8.', fitness:'Reactive direction changes — 3x30s.', mental:'Earlier than you think.' }},
+    { id:'bbt_error_7', label:'Lack of Rail Engagement', cues:['board stays flat during the turn','no grip or carving sensation'], triad:{ surfskate:'Rail commitment drill — exaggerate heel edge engagement. Flat board = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Trust the rail.' }},
+    { id:'bbt_error_8', label:'No Projection Out of the Turn', cues:['turn ends without speed or direction','next maneuver feels disconnected'], triad:{ surfskate:'Projection drill — aim toward top third target. No direction = failed rep. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Turn to go somewhere.' }},
+  ],
+  'Frontside Cutback': [
+    { id:'fc_error_1', label:'Looking Down or Missing Target Line', cues:['eyes drop toward the board','turn lacks direction and purpose'], triad:{ surfskate:'Target line drill — keep head fixed on return point through entire turn. Gaze drops = reset. 3x8.', fitness:'Thoracic and neck rotation control — 3x30s each side.', mental:'Where you look is where you go.' }},
+    { id:'fc_error_2', label:'Wrong Wave Section', cues:['cutback started on steep or fast section','no space to complete the turn'], triad:{ surfskate:'Section awareness drill — only initiate after visible fade in line. Forced = abort. 3x6.', fitness:'Reactive direction changes — 3x30s.', mental:'When flat, cutback.' }},
+    { id:'fc_error_3', label:'Poor Setup — Line and Speed', cues:['entering cutback with low speed','approach line is too flat or too straight'], triad:{ surfskate:'High-line setup drill — approach from higher line with speed. No speed = no turn. 3x8.', fitness:'Acceleration pumps short bursts — 3x20s.', mental:'High line before the turn.' }},
+    { id:'fc_error_4', label:'Lack of Rail Control', cues:['board stays flat during the turn','arc is shallow and incomplete'], triad:{ surfskate:'Deep carve drill — exaggerate rail angle through full arc. Flat board = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Correct setup, improve your rail control.' }},
+    { id:'fc_error_5', label:'Incomplete Rotation', cues:['shoulders stop halfway through the turn','board does not fully redirect back to the foam'], triad:{ surfskate:'Full rotation drill — full shoulder and hip rotation until board points back to origin. Half-turn = failed rep. 3x8.', fitness:'Rotational band work — 3x12 each side.', mental:'Finish the turn.' }},
+    { id:'fc_error_6', label:'No Reconnection Intent', cues:['cutback ends without reaching the foam','loss of flow after the turn'], triad:{ surfskate:'Reconnection drill — aim every turn back to marked foam point. Do not reach = reset. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Return to power.' }},
+  ],
+  'Backside Cutback': [
+    { id:'bcb_error_1', label:'Back Foot Too Far Forward', cues:['back foot not on tail limits pivot','board does not release cleanly'], triad:{ surfskate:'Tail anchor drill — set back foot and keep it fixed. Movement = reset. 3x8.', fitness:'Single-leg calf raises — 3x15 each side.', mental:'Set the foot first.' }},
+    { id:'bcb_error_2', label:'Not Compressing Enough', cues:['upright posture through the turn','no visible load before redirect'], triad:{ surfskate:'Compression drill — drop low before and through the turn. No load = no rep. 3x8.', fitness:'Squat holds with rotation — 3x20s.', mental:'Go low to turn.' }},
+    { id:'bcb_error_3', label:'Looking and Pointing the Wrong Way', cues:['head does not lead return','arms do not guide direction'], triad:{ surfskate:'Look-and-lead drill — eyes and arm lead toward target. Late = reset. 3x8.', fitness:'Thoracic rotation with band reach — 3x10 each side.', mental:'Look back early.' }},
+    { id:'bcb_error_4', label:'Stalling Mid-Turn', cues:['loss of speed during arc','broken or segmented turn'], triad:{ surfskate:'Continuous arc drill — one smooth carve. Stall = reset. 3x6.', fitness:'Agility arc drill — 3x20s.', mental:'One line, no pause.' }},
+    { id:'bcb_error_5', label:'Poor Setup — Speed and Line', cues:['entering cutback with low speed','approach line too flat'], triad:{ surfskate:'High-line setup drill — approach with speed from higher line. No speed = no turn. 3x8.', fitness:'Acceleration pumps — 3x20s.', mental:'Speed before turn.' }},
+    { id:'bcb_error_6', label:'Lack of Rail Commitment', cues:['board stays flat during carve','turn lacks depth and control'], triad:{ surfskate:'Deep carve drill — exaggerate rail engagement. Flat board = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Trust the rail.' }},
+    { id:'bcb_error_7', label:'Incomplete Rotation', cues:['board does not return toward foam','turn stops halfway'], triad:{ surfskate:'Full rotation drill — force full return to starting line. Half-turn = reset. 3x8.', fitness:'Rotational band work — 3x12 each side.', mental:'Finish the arc.' }},
+    { id:'bcb_error_8', label:'No Reconnection Intent', cues:['cutback ends away from wave energy','no contact with foam or power zone'], triad:{ surfskate:'Reconnection drill — aim for marked foam point. Miss = reset. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Return to power.' }},
+    { id:'bcb_error_9', label:'No Projection Out of the Turn', cues:['board stalls after reconnect','no continuation down the line'], triad:{ surfskate:'Turn-and-go drill — immediate projection after reconnect. Stall = failed rep. 3x6.', fitness:'Explosive step-back lunges — 3x10 each side.', mental:'Return and go.' }},
+  ],
+  'Frontside Top Turn': [
+    { id:'ftt_error_1', label:'Turning Too Early', cues:['turn starts before reaching top third','loss of speed before completion'], triad:{ surfskate:'Apex drill — initiate only at highest point. Early = reset. 3x6.', fitness:'Reaction timing drill — 3x20s.', mental:'Climb first, turn at the top.' }},
+    { id:'ftt_error_2', label:'Leading Arm Stays Closed', cues:['front arm blocks rotation','chest stays closed'], triad:{ surfskate:'Arm release drill — open arm before initiating. Closed = reset. 3x8.', fitness:'Thoracic rotation with band reach — 3x10 each side.', mental:'Open the chest.' }},
+    { id:'ftt_error_3', label:'Head and Shoulders Do Not Initiate', cues:['eyes look down or late','rotation happens after board movement'], triad:{ surfskate:'Head-led drill — head then shoulders then hips. Late = reset. 3x8.', fitness:'Open-book rotations — 3x12 each side.', mental:'Eyes lead.' }},
+    { id:'ftt_error_4', label:'Poor Bottom-Turn Setup', cues:['arrive at top with no speed','top turn feels forced'], triad:{ surfskate:'Bottom-to-top drill — link clean bottom turn into top turn. Weak setup = reset. 3x6.', fitness:'Split squat to rotation — 3x8 each side.', mental:'It starts at the bottom.' }},
+    { id:'ftt_error_5', label:'No Compression at the Top', cues:['arrive tall at the lip','no visible load before turning'], triad:{ surfskate:'Top compression drill — compress at apex before turning. No load = no rep. 3x8.', fitness:'Tempo squats — 3x12.', mental:'Load at the top.' }},
+    { id:'ftt_error_6', label:'No Rail-to-Release Transition', cues:['carving through instead of snapping','no clear release phase'], triad:{ surfskate:'Rail-to-release drill — carve up, release, then redirect. No release = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Rail, release, turn.' }},
+    { id:'ftt_error_7', label:'Lack of Vertical Projection', cues:['approach is diagonal instead of upward','fails to reach top section properly'], triad:{ surfskate:'Vertical line drill — approach on steeper line. Flat entry = reset. 3x8.', fitness:'Explosive step-ups — 3x10 each side.', mental:'Go up.' }},
+    { id:'ftt_error_8', label:'No Projection After the Turn', cues:['board stalls after turn','no continuation down the line'], triad:{ surfskate:'Turn-and-go drill — immediate projection after turn. Stall = failed rep. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Turn and go.' }},
+  ],
+  'Backside Top Turn': [
+    { id:'btt_error_1', label:'Leading Arm Stays Closed', cues:['front arm blocks rotation across the body','upper body feels restricted'], triad:{ surfskate:'Arm release drill — drop and open leading arm before initiating. Closed = reset. 3x8.', fitness:'Thoracic rotation with band reach — 3x10 each side.', mental:'Free the arm, free the turn.' }},
+    { id:'btt_error_2', label:'Shoulders and Head Stay Closed', cues:['head does not lead direction','shoulders remain square to board'], triad:{ surfskate:'Head-lead drill — head first then shoulders then hips. Late = reset. 3x8.', fitness:'Open-book rotations — 3x12 each side.', mental:'Head leads everything.' }},
+    { id:'btt_error_3', label:'Turning Too Early', cues:['turn starts below the top section','weak redirection with no lip contact'], triad:{ surfskate:'Apex timing drill — initiate only at highest point. Early = reset. 3x6.', fitness:'Reaction-step intervals — 3x20s.', mental:'Wait for the top.' }},
+    { id:'btt_error_4', label:'Poor Bottom-Turn Setup', cues:['arrive at the top with no speed or control','top turn feels forced'], triad:{ surfskate:'Bottom-to-top flow drill — link clean bottom turn into snap. Weak setup = reset. 3x6.', fitness:'Split squat to rotation — 3x8 each side.', mental:'It starts at the bottom.' }},
+    { id:'btt_error_5', label:'Lack of Compression at the Top', cues:['arrive tall at the lip','no load before snap'], triad:{ surfskate:'Top compression drill — compress at apex before snapping. No load = no rep. 3x8.', fitness:'Tempo squats — 3x12.', mental:'Load before you snap.' }},
+    { id:'btt_error_6', label:'No Rail-to-Release Transition', cues:['carving through or losing control at the top','no clear release phase'], triad:{ surfskate:'Rail-to-snap drill — carve up, release, then snap. No transition = reset. 3x8.', fitness:'Lateral lunges — 3x10 each side.', mental:'Rail, release, snap.' }},
+    { id:'btt_error_7', label:'Lack of Lip Interaction', cues:['turn happens below the lip','no impact with the top section'], triad:{ surfskate:'Lip target drill — aim for defined top point. Miss = reset. 3x6.', fitness:'Forward drive lunges — 3x10 each side.', mental:'Hit the lip.' }},
+    { id:'btt_error_8', label:'No Projection After the Turn', cues:['board stalls after the snap','no continuation down the line'], triad:{ surfskate:'Snap-and-go drill — immediately project down the line after snap. Stall = failed rep. 3x6.', fitness:'Explosive step-back lunges — 3x10 each side.', mental:'Snap and go.' }},
+  ],
+};
+
+function getErrorContextForPrompt(techniqueName) {
+  const errors = POST_SESSION_ERRORS[techniqueName];
+  if (!errors) return '';
+  const lines = errors.map(e => {
+    const t = e.triad;
+    const drill = t.technique || t.surfskate || '';
+    return `• ${e.label}: ${e.cues[0]}. DRILL: ${drill} FITNESS: ${t.fitness || ''} MENTAL: ${t.mental}`;
+  });
+  return `\nERROR DIAGNOSIS FOR ${techniqueName.toUpperCase()} — identify which applies based on what the surfer reported, then prescribe that exact triad:\n${lines.join('\n')}`;
+}
+
 const SCORE_KEY = 'coachVasco_surfScore';
 
 // ─── SURF SCORE UNLOCK TREE ───────────────────────────────────────────────────
@@ -2578,10 +2689,47 @@ function computeBaselineScore(userProfile) {
 function getSurfScore(userProfile) {
   try {
     const stored = localStorage.getItem(SCORE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // If stored score is below the baseline for their level, reset to baseline
+      const baseline = computeBaselineScore(userProfile);
+      if (parsed.value < baseline) {
+        const fresh = { value: baseline, history: [{ date: Date.now(), value: baseline }], lastSession: null };
+        try { localStorage.setItem(SCORE_KEY, JSON.stringify(fresh)); } catch {}
+        return fresh;
+      }
+      return parsed;
+    }
   } catch {}
   const baseline = computeBaselineScore(userProfile);
   return { value: baseline, history: [{ date: Date.now(), value: baseline }], lastSession: null };
+}
+
+// Pre-fire unlocks that a surfer at this level has already passed
+function initializeUnlocksForLevel(userProfile) {
+  if (!userProfile) return;
+  const fired = getFiredUnlocks();
+  if (fired.length > 0) return; // already initialized
+
+  const label = userProfile.cstmLevel || '';
+  const toFire = [];
+
+  // Level 1-2 and above: has pop-up and angled take-off
+  if (label.includes('Level 1') || label.includes('Level 2') || label.includes('Level 3')) {
+    toFire.push('popup', 'angled_takeoff');
+  }
+  // Level 2 and above: has pumping and bottom turn
+  if (label.includes('Level 2') || label.includes('Level 3')) {
+    toFire.push('pumping', 'bottom_turn');
+  }
+  // Level 3: has cutback
+  if (label.includes('Level 3')) {
+    toFire.push('cutback');
+  }
+
+  if (toFire.length > 0) {
+    try { localStorage.setItem(UNLOCKS_KEY, JSON.stringify(toFire)); } catch {}
+  }
 }
 
 function updateSurfScore(userProfile, sessionData) {
@@ -2830,7 +2978,8 @@ const ASSESSMENT_QUESTIONS = [
   {
     id: "equipment",
     q: "What equipment do you have access to?",
-    opts: ["Surfboard only", "Surfboard + Surfskate", "Home setup (mat, bands, TRX)", "Full gym access", "Surfskate + Full gym", "Surf + Surfskate + Gym"],
+    opts: ["Surfboard", "Surfskate", "Home setup (mat, bands, TRX)", "Full gym"],
+    multi: true,
   },
   {
     id: "training_days",
@@ -3938,31 +4087,50 @@ function ProgrammeView({ programmes, sendMessage, userProfile }) {
 function TodaysFocus({ userProfile, onStartPreSession }) {
   const sessions = getSessions();
   const focus = getTodaysFocus(userProfile, sessions);
+  const [expanded, setExpanded] = useState(false);
   if (!focus) return null;
 
   const lastSession = sessions.filter(s => s.postTime).slice(-1)[0];
-  const hasLastNote = !!lastSession?.observation;
 
   return (
-    <div style={{ width: '100%', maxWidth: '400px', marginTop: '16px', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
-      <div style={{ fontSize: '9px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '8px', textAlign: 'left' }}>
+    <div style={{ width: '100%', maxWidth: '400px', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
+      <div style={{ fontSize: '9px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '6px', textAlign: 'left' }}>
         Today's focus
       </div>
-      <div
-        onClick={() => onStartPreSession(focus.technique)}
-        style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.1)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.3)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+      <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', overflow: 'hidden' }}>
+        {/* Tap to expand */}
+        <div onClick={() => setExpanded(e => !e)}
+          style={{ padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           <div>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#EAEA97' }}>{focus.technique}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginTop: '2px' }}>{focus.reason}</div>
           </div>
-          <div style={{ fontSize: '12px', color: 'rgba(234,234,151,0.3)', flexShrink: 0, marginTop: '2px' }}>→</div>
+          <div style={{ fontSize: '12px', color: 'rgba(234,234,151,0.4)', transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'none', flexShrink: 0 }}>→</div>
         </div>
-        {hasLastNote && focus.source === 'session' && (
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            "{lastSession.observation.slice(0, 100)}{lastSession.observation.length > 100 ? '...' : ''}"
+        {/* Expanded detail */}
+        {expanded && (
+          <div style={{ padding: '0 14px 14px', borderTop: '1px solid rgba(241,243,236,0.06)' }}>
+            {focus.description && (
+              <div style={{ paddingTop: '10px', marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', color: 'rgba(234,234,151,0.5)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Key points</div>
+                {focus.description.split(' · ').map((cue, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '5px' }}>
+                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(234,234,151,0.4)', flexShrink: 0, marginTop: '6px' }} />
+                    <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.7)', lineHeight: 1.5 }}>{cue}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {lastSession?.observation && focus.source === 'session' && (
+              <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.35)', lineHeight: 1.5, fontStyle: 'italic', marginBottom: '10px', paddingTop: focus.description ? '8px' : '10px', borderTop: focus.description ? '1px solid rgba(241,243,236,0.06)' : 'none' }}>
+                "{lastSession.observation.slice(0, 120)}{lastSession.observation.length > 120 ? '...' : ''}"
+              </div>
+            )}
+            <button
+              onClick={() => { setExpanded(false); onStartPreSession(focus.technique); }}
+              style={{ width: '100%', padding: '10px', background: '#EAEA97', border: 'none', borderRadius: '8px', color: '#2A2A29', fontSize: '13px', fontWeight: '700', cursor: 'pointer', touchAction: 'manipulation' }}>
+              Start session on this
+            </button>
           </div>
         )}
       </div>
@@ -4476,6 +4644,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
     // Save first — data is never lost
     persistSession('');
 
+    const errorCtx = getErrorContextForPrompt(focus);
     const sys = [
       'You are Coach Vasco.',
       `Session: ${session.type}. Technique: "${focus}".`,
@@ -4490,7 +4659,8 @@ function PostSessionModal({ session, userProfile, onClose }) {
       isWoman
         ? 'Tone: acknowledge effort, connect to progress, one achievable carry-forward.'
         : 'Tone: direct, technical, what worked, what to fix, one next action.',
-      'Rules: max 3 sentences. Only reference what was reported. No video/filming mentions. End with one specific named drill with reps/sets.',
+      errorCtx,
+      'RULES: 2-3 sentences max. Only reference what was reported. No video/filming mentions. If you identify a specific error from the diagnosis list above, prescribe the exact triad (technique drill + fitness + mental cue). Sound like Vasco: direct, experienced, no filler.',
     ].filter(Boolean).join(' ');
 
     try {
@@ -4499,7 +4669,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 280,
+          max_tokens: 380,
           system: sys,
           messages: [{ role: 'user', content: `${session.type}, ${focus}, ${rating}/5` }],
         }),
@@ -4745,7 +4915,7 @@ function HistorySidebar({ history, currentId, onLoad, onNew, onDelete, onClose }
 
 
 // ─── CHAT TAB ────────────────────────────────────────────────────────────────
-function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif }) {
+function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, preSelectedFocus, setPreSelectedFocus, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif, onSignOut }) {
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -4771,21 +4941,23 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '900px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {!started && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 24px', textAlign: 'center', minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 16px', textAlign: 'center', minHeight: 0, gap: '10px' }}>
 
             {hasAssessed && userProfile ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                  <img src={CS_LOGO} alt="Coach Vasco" style={{ width: '44px', height: '44px', borderRadius: '50%', flexShrink: 0 }} />
-                  <div style={{ textAlign: 'left' }}>
-                    <h1 style={{ fontSize: '20px', fontWeight: '300', color: '#F1F3EC', margin: '0 0 1px', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>Hi, I'm <span style={{ color: '#EAEA97', fontWeight: '600' }}>Coach Vasco</span></h1>
-                    <p style={{ fontSize: '11px', color: 'rgba(241,243,236,0.3)', margin: 0, fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>{userProfile.surfLabel} · What are we working on today?</p>
+                {/* Header — compact */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: '400px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img src={CS_LOGO} alt="Coach Vasco" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                    <div style={{ textAlign: 'left' }}>
+                      <h1 style={{ fontSize: '17px', fontWeight: '300', color: '#F1F3EC', margin: 0, fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>Hi, I'm <span style={{ color: '#EAEA97', fontWeight: '600' }}>Coach Vasco</span></h1>
+                      <p style={{ fontSize: '10px', color: 'rgba(241,243,236,0.3)', margin: 0, fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>{userProfile.surfLabel}</p>
+                    </div>
                   </div>
+                  <button onClick={onSignOut} style={{ background: 'none', border: '1px solid rgba(241,243,236,0.1)', borderRadius: '6px', color: 'rgba(241,243,236,0.25)', fontSize: '10px', cursor: 'pointer', padding: '4px 8px', touchAction: 'manipulation' }}>Sign out</button>
                 </div>
-                <button onClick={() => setTab('quiz')} style={{ background: 'none', border: 'none', color: 'rgba(234,234,151,0.25)', fontSize: '11px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", padding: '4px', marginTop: '8px' }}>Retake assessment</button>
-                <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.15)', fontSize: '11px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", padding: '4px' }}>Sign out</button>
 
-                {/* Today's Focus — feedback loop entry point */}
+                {/* Today's Focus */}
                 {!pendingPostSession && (
                   <TodaysFocus
                     userProfile={userProfile}
@@ -4799,18 +4971,15 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                 {/* Surf Score */}
                 <SurfScoreCard userProfile={userProfile} />
 
-                {/* Notification permission — shown once */}
+                {/* Notification permission */}
                 {showNotifCard && (
                   <NotificationPermission onDismiss={onDismissNotif} />
                 )}
 
-                {/* Post-session review banner */}
+                {/* Post-session banner */}
                 {pendingPostSession && (
                   <div onClick={onOpenPostSession}
-                    style={{ marginTop: '16px', width: '100%', maxWidth: '400px', background: 'rgba(234,234,151,0.07)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '12px', padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.07)'; }}>
-
+                    style={{ width: '100%', maxWidth: '400px', background: 'rgba(234,234,151,0.07)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '12px', padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', touchAction: 'manipulation' }}>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: '13px', color: '#EAEA97', fontWeight: '600' }}>How did your session go?</div>
                       <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginTop: '2px' }}>You focused on {pendingPostSession.focus} — tap to review</div>
@@ -4819,14 +4988,15 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                   </div>
                 )}
 
-                {/* Pre-session button — always on */}
+                {/* I'm about to surf button */}
                 <button
                   onClick={() => setShowPreSession(true)}
-                  style={{ marginTop: pendingPostSession ? '8px' : '20px', padding: '12px 28px', background: 'rgba(234,234,151,0.08)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", letterSpacing: '0.02em', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.22)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                  style={{ width: '100%', maxWidth: '400px', marginTop: '8px', padding: '14px', background: '#EAEA97', border: 'none', borderRadius: '12px', color: '#2A2A29', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", touchAction: 'manipulation' }}>
                   I'm about to surf
                 </button>
+
+                {/* Retake assessment — very subtle */}
+                <button onClick={() => setTab('quiz')} style={{ background: 'none', border: 'none', color: 'rgba(234,234,151,0.2)', fontSize: '10px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", padding: '4px', marginTop: '4px', touchAction: 'manipulation' }}>Retake assessment</button>
               </>
             ) : (
               <>
@@ -5261,13 +5431,21 @@ const TABS = [
 
 // ─── AUTH SCREEN ─────────────────────────────────────────────────────────────
 function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'reset' | 'update'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  // Check for password recovery on mount
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      setMode('update');
+    }
+  }, []);
 
   const handle = async () => {
     setError(''); setMessage(''); setLoading(true);
@@ -5278,9 +5456,16 @@ function AuthScreen({ onAuth }) {
         setMessage('Account created. Check your email to confirm, then sign in.');
         setMode('login');
       } else if (mode === 'reset') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
         if (error) throw error;
         setMessage('Password reset email sent. Check your inbox.');
+      } else if (mode === 'update') {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setMessage('Password updated. Signing you in...');
+        setTimeout(() => window.location.reload(), 1500);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -5293,39 +5478,68 @@ function AuthScreen({ onAuth }) {
     }
   };
 
-  const inp = { width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(234,234,151,0.2)', borderRadius: '10px', padding: '14px 16px', color: '#F1F3EC', fontSize: '16px', outline: 'none', fontFamily: "'Inter','Helvetica Neue',sans-serif", boxSizing: 'border-box' };
-  const canSubmit = email && (mode === 'reset' || password);
+  const inp = {
+    width: '100%', background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(234,234,151,0.2)', borderRadius: '10px',
+    padding: '14px 16px', color: '#F1F3EC', fontSize: '16px',
+    outline: 'none', fontFamily: "'Inter','Helvetica Neue',sans-serif",
+    boxSizing: 'border-box',
+  };
+
+  const canSubmit = (mode === 'reset' && email) || (mode === 'update' && password) || (email && password);
 
   return (
     <div style={{ height: '100dvh', width: '100vw', background: '#2A2A29', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: "'Inter','Helvetica Neue',sans-serif", color: '#F1F3EC' }}>
       <img src={CS_LOGO} alt="Coach Vasco" style={{ width: '64px', height: '64px', borderRadius: '50%', marginBottom: '24px' }} />
       <h1 style={{ fontSize: '22px', fontWeight: '600', color: '#EAEA97', marginBottom: '6px' }}>Coach Vasco</h1>
       <p style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)', marginBottom: '36px' }}>
-        {mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
+        {mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your account' : mode === 'update' ? 'Set your new password' : 'Reset your password'}
       </p>
+
       <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && canSubmit && handle()} style={inp} />
-        {mode !== 'reset' && (
+        {mode !== 'update' && (
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && canSubmit && handle()} style={inp} />
+        )}
+
+        {(mode === 'login' || mode === 'signup' || mode === 'update') && (
           <div style={{ position: 'relative' }}>
-            <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && canSubmit && handle()} style={{ ...inp, paddingRight: '48px' }} />
-            <button onClick={() => setShowPassword(s => !s)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(241,243,236,0.35)', cursor: 'pointer', fontSize: '12px', padding: '4px', touchAction: 'manipulation' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={mode === 'update' ? 'New password' : 'Password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && canSubmit && handle()}
+              style={{ ...inp, paddingRight: '48px' }} />
+            <button
+              onClick={() => setShowPassword(s => !s)}
+              style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(241,243,236,0.35)', cursor: 'pointer', fontSize: '12px', padding: '4px', touchAction: 'manipulation' }}>
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
         )}
+
         {error && <div style={{ fontSize: '13px', color: '#ff6b6b', textAlign: 'center' }}>{error}</div>}
         {message && <div style={{ fontSize: '13px', color: '#EAEA97', textAlign: 'center' }}>{message}</div>}
-        <button onClick={handle} disabled={loading || !canSubmit} style={{ width: '100%', padding: '14px', background: canSubmit ? '#EAEA97' : 'rgba(234,234,151,0.15)', border: 'none', borderRadius: '10px', color: canSubmit ? '#2A2A29' : 'rgba(241,243,236,0.25)', fontSize: '15px', fontWeight: '700', cursor: canSubmit ? 'pointer' : 'default', touchAction: 'manipulation' }}>
-          {loading ? '...' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset email'}
+
+        <button onClick={handle} disabled={loading || !canSubmit}
+          style={{ width: '100%', padding: '14px', background: canSubmit ? '#EAEA97' : 'rgba(234,234,151,0.15)', border: 'none', borderRadius: '10px', color: canSubmit ? '#2A2A29' : 'rgba(241,243,236,0.25)', fontSize: '15px', fontWeight: '700', cursor: canSubmit ? 'pointer' : 'default', touchAction: 'manipulation' }}>
+          {loading ? '...' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : mode === 'update' ? 'Update password' : 'Send reset email'}
         </button>
+
         {mode === 'login' && (
-          <button onClick={() => { setMode('reset'); setError(''); setMessage(''); }} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.25)', fontSize: '12px', cursor: 'pointer', padding: '4px', touchAction: 'manipulation' }}>
+          <button onClick={() => { setMode('reset'); setError(''); setMessage(''); }}
+            style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.25)', fontSize: '12px', cursor: 'pointer', padding: '4px', touchAction: 'manipulation' }}>
             Forgot your password?
           </button>
         )}
-        <button onClick={() => { setMode(mode === 'signup' ? 'login' : mode === 'reset' ? 'login' : 'signup'); setError(''); setMessage(''); }} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.35)', fontSize: '13px', cursor: 'pointer', padding: '8px', touchAction: 'manipulation' }}>
-          {mode === 'signup' ? 'Already have an account? Sign in' : mode === 'reset' ? 'Back to sign in' : "Don't have an account? Sign up"}
-        </button>
+
+        {mode !== 'update' && (
+          <button onClick={() => { setMode(mode === 'signup' ? 'login' : mode === 'reset' ? 'login' : 'signup'); setError(''); setMessage(''); }}
+            style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.35)', fontSize: '13px', cursor: 'pointer', padding: '8px', touchAction: 'manipulation' }}>
+            {mode === 'signup' ? 'Already have an account? Sign in' : mode === 'reset' ? 'Back to sign in' : "Don't have an account? Sign up"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -5410,6 +5624,7 @@ export default function SurfCoachAgent() {
         setMode('surfer');
         const levelMap = { 'Complete Beginner': 'beginner', 'Beginner': 'beginner', 'Experienced Beginner': 'beginner', 'Intermediate': 'intermediate', 'Advanced': 'advanced' };
         setUserLevel(levelMap[profile.surf_label] || 'beginner');
+        initializeUnlocksForLevel(reconstructed);
         try { localStorage.setItem('coachVasco_profile', JSON.stringify(reconstructed)); } catch {}
       }
       // Load sessions
@@ -6069,10 +6284,13 @@ Rules:
             onOpenHistory={() => setShowHistory(true)}
             showPreSession={showPreSession}
             setShowPreSession={setShowPreSession}
+            preSelectedFocus={preSelectedFocus}
+            setPreSelectedFocus={setPreSelectedFocus}
             pendingPostSession={pendingPostSession}
             onOpenPostSession={() => { const s = getLatestUnreviewedSession(); if (s) setPendingPostSession(s); }}
             showNotifCard={showNotifCard}
-            onDismissNotif={() => setShowNotifCard(false)} />
+            onDismissNotif={() => setShowNotifCard(false)}
+            onSignOut={signOut} />
         )}
         {tab === 'quiz' && <div style={{ flex: 1, overflowY: 'auto' }}><FitnessQuiz onComplete={handleQuizComplete} mode={mode} initialResult={userProfile} /></div>}
         {tab === 'plan' && <div style={{ flex: 1, overflowY: 'auto' }}><TrainingPlan /></div>}
@@ -6095,4 +6313,3 @@ Rules:
     </div>
   );
 }
-
