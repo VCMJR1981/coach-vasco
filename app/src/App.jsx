@@ -5914,15 +5914,26 @@ export default function SurfCoachAgent() {
     if (!userText || userText.length < 4) return false;
     if (!!attachedFile) return false;
     if (window._coachMode === 'coach') return false;
-    if (userText.toLowerCase().match(/program|programme|plan|week|session|block/)) return false;
-    const wordCount = userText.trim().split(/\s+/).length;
-    // Trigger gatekeeper for short ambiguous messages (1-3 words)
-    // or slightly longer but still vague (4-5 words with no strong keyword)
+
     const lc = userText.toLowerCase();
-    const hasStrongKeyword = lc.match(/pop.?up|bottom turn|cutback|paddle|paddling|surfskate|pump|snap|carve|endurance|strength|injury|pain|wave reading|lineup|nutrition|diet|mental|fear|anxiety/);
-    if (wordCount <= 3) return true;
-    if (wordCount <= 5 && !hasStrongKeyword) return true;
-    return false;
+
+    // Explicit programme / plan requests are inherently specific — pass through
+    if (lc.match(/\b(programme|program|plan|week|session|block|show me|give me|create|build me|write me)\b/)) return false;
+
+    // Count keyword hits per category (excluding the "Something else" fallback)
+    const content = CLARIFY_CATEGORIES.filter(c => c.keywords.length > 0);
+    const categoryHits = content.map(c => ({
+      hits: c.keywords.filter(k => lc.includes(k)).length,
+    })).filter(c => c.hits > 0);
+
+    // Single category with 2+ keyword hits → strong, unambiguous intent → pass through
+    if (categoryHits.length === 1 && categoryHits[0].hits >= 2) return false;
+
+    // Everything else is ambiguous:
+    //   0 categories match  → vague message
+    //   1 category, 1 hit   → topic guessed but intent unclear
+    //   2+ categories match → genuinely multi-topic
+    return true;
   };
 
   const sendMessage = async (text, skipClarify = false) => {
