@@ -5861,23 +5861,40 @@ export default function SurfCoachAgent() {
 
   // ── CLARIFICATION GATEKEEPER — keyword-based, zero tokens ────────────────
   const CLARIFY_CATEGORIES = [
-    { label: 'Technique correction',   keywords: ['technique','turn','pop','popup','pop-up','cutback','bottom turn','snap','carve','take-off','takeoff','stance','position','foot','paddle','paddling'] },
-    { label: 'Training & fitness',     keywords: ['train','workout','exercise','gym','fitness','strength','endurance','conditioning','dry land','programme','program','plan','session','week'] },
-    { label: 'Surfskate drills',       keywords: ['surfskate','skate','pump','carver','yow','deck','land','off-water','dry'] },
-    { label: 'Wave reading & tactics', keywords: ['wave','read','lineup','peak','swell','tide','wind','crowd','position','priority','set','break','beach','point'] },
-    { label: 'Injury & recovery',      keywords: ['hurt','pain','injur','sore','ache','recovery','rehab','shoulder','knee','back','wrist','ankle'] },
-    { label: 'Something else',         keywords: [] },
+    { label: 'Technique correction',        keywords: ['technique','turn','pop','popup','pop-up','cutback','bottom turn','snap','carve','take-off','takeoff','stance','position','foot','paddle','paddling','trim','aerial','floater','tube','barrel','timing','rail'] },
+    { label: 'Training & fitness',          keywords: ['train','workout','exercise','gym','fitness','strength','endurance','conditioning','dry land','programme','program','plan','session','week','pull','push','squat','jump','power','hiit','cardio','weights','sets','reps'] },
+    { label: 'Surfskate drills',            keywords: ['surfskate','skate','pump','carver','yow','deck','land','off-water','dry','rail','pump'] },
+    { label: 'Wave reading & tactics',      keywords: ['wave','read','lineup','peak','swell','tide','wind','crowd','position','priority','set','break','beach','point','section','strategy','heat','competition'] },
+    { label: 'Equipment & gear',            keywords: ['board','surfboard','fin','fins','leash','wetsuit','wax','volume','length','width','rocker','concave','gear','kit','twin','thruster','quad','longboard','shortboard','midlength','foamie','foam board','size','shape'] },
+    { label: 'Mental & confidence',         keywords: ['fear','confident','confidence','mental','anxiety','anxious','scared','nervous','mind','stress','focus','breathe','breathing','mindful','drown','hold down','wipeout','commit','hesitat','psycholog'] },
+    { label: 'Injury & recovery',           keywords: ['hurt','pain','injur','sore','ache','recovery','rehab','shoulder','knee','back','wrist','ankle','neck','hip','stretch','mobility'] },
+    { label: 'Something else / Write my own', keywords: [] },
   ];
+
+  const _CLARIFY_DEFAULTS = ['Technique correction', 'Training & fitness', 'Wave reading & tactics'];
 
   const getClarifyOptions = (userText) => {
     const lc = userText.toLowerCase();
-    const matched = CLARIFY_CATEGORIES.filter(c =>
-      c.keywords.length === 0 || c.keywords.some(k => lc.includes(k))
-    );
-    // Always include "Something else" at the end
-    const withoutFallback = matched.filter(c => c.label !== 'Something else');
-    const top = withoutFallback.slice(0, 3);
-    return [...top, { label: 'Something else', keywords: [] }];
+    const content = CLARIFY_CATEGORIES.filter(c => c.keywords.length > 0);
+    const fallback = CLARIFY_CATEGORIES.find(c => c.keywords.length === 0);
+
+    // Score each category by number of keyword hits so best matches surface first
+    const scored = content
+      .map(c => ({ ...c, score: c.keywords.filter(k => lc.includes(k)).length }))
+      .filter(c => c.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    let top = scored.slice(0, 3);
+
+    // Pad to 3 with default popular categories when fewer matched
+    if (top.length < 3) {
+      const defaults = content.filter(
+        c => _CLARIFY_DEFAULTS.includes(c.label) && !top.find(t => t.label === c.label)
+      );
+      top = [...top, ...defaults].slice(0, 3);
+    }
+
+    return [...top, fallback];
   };
 
   const detectTool = (userText) => {
