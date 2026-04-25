@@ -5896,7 +5896,7 @@ export default function SurfCoachAgent() {
   const isAmbiguous = (userText) => {
     if (!userText || userText.length < 4) return false;
     if (!!attachedFile) return false;
-    if (userLevel) return false;
+    // if (userLevel) return false;
     if (window._coachMode === 'coach') return false;
     if (userText.toLowerCase().match(/program|programme|plan|week|session|block/)) return false;
     const wordCount = userText.trim().split(/\s+/).length;
