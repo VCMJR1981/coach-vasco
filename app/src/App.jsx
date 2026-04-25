@@ -5960,6 +5960,7 @@ export default function SurfCoachAgent() {
         isClarify: true,
       };
       setMessages(prev => [...prev, userMsg, clarifyMsg]);
+      return;
       setPendingQuestion({ originalText: userText, clarifyContext: clarifyMsg.content });
       return;
     }
@@ -6308,4 +6309,8 @@ export default function SurfCoachAgent() {
     </div>
   );
 }
+
+
+
+
 
