@@ -5324,7 +5324,7 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                     <div style={{ fontSize: '14px', color: '#F1F3EC', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", lineHeight: '1.5' }}>{fuQuestion}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {fuOpts.map((opt, j) => (
-                        <button key={j} onClick={() => sendMessage(opt, true)}
+                        <button key={j} onClick={() => sendMessage(opt)}
                           style={{ padding: '10px 16px', background: 'rgba(234,234,151,0.08)', border: '1px solid rgba(234,234,151,0.28)', borderRadius: '100px', color: '#EAEA97', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.3 }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.18)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.6)'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.28)'; }}>
