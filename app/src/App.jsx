@@ -4915,7 +4915,7 @@ function HistorySidebar({ history, currentId, onLoad, onNew, onDelete, onClose }
 
 
 // ─── CHAT TAB ────────────────────────────────────────────────────────────────
-function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, preSelectedFocus, setPreSelectedFocus, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif, onSignOut }) {
+function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, preSelectedFocus, setPreSelectedFocus, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif, onClarifyChoice, onSignOut }) {
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -5144,6 +5144,7 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
             const optMatches = [...mainText.matchAll(/^-\s+(.+)$/gm)].map(m => m[1].trim());
             const questionText = qMatch?.[1]?.trim() || mainText.replace(/OPTIONS:[\s\S]*/,'').trim();
             const isLastMsg = i === messages.length - 1;
+            const step = msg.clarifyStep || 1;
             return (
               <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, marginTop: '2px' }}>
@@ -5164,7 +5165,7 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                                 setInput('');
                                 setTimeout(() => inputRef?.current?.focus(), 50);
                               } else {
-                                sendMessage(opt, true);
+                                onClarifyChoice(opt, step);
                               }
                             }}
                             style={{ width: '100%', padding: '13px 18px', background: isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.07)', border: `1px solid ${isSomethingElse ? 'rgba(241,243,236,0.12)' : 'rgba(234,234,151,0.22)'}`, borderRadius: '10px', color: isSomethingElse ? 'rgba(241,243,236,0.4)' : '#F1F3EC', fontSize: '14px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.4, textAlign: 'left' }}
@@ -5871,6 +5872,18 @@ export default function SurfCoachAgent() {
 
   const _CLARIFY_DEFAULTS = ['Technique correction', 'Training & fitness', 'Wave reading & tactics'];
 
+  const Q2_OPTIONS = {
+    'Technique correction':   ['Pop-up / take-off', 'Paddling stroke', 'Bottom turn', 'Cutback & snap', 'Positioning & stance', 'Something else / Write my own'],
+    'Training & fitness':     ['Strength & power', 'Paddle endurance', 'Explosive power', 'Mobility & flexibility', 'Full programme', 'Something else / Write my own'],
+    'Surfskate drills':       ['Pumping & speed', 'Carving & turns', 'Pop-up simulation', 'Balance & stance', 'Something else / Write my own'],
+    'Wave reading & tactics': ['Reading the lineup', 'Wave selection', 'Positioning & priority', 'Competition tactics', 'Something else / Write my own'],
+    'Equipment & gear':       ['Board selection', 'Fin setup', 'Wetsuit choice', 'Other accessories', 'Something else / Write my own'],
+    'Mental & confidence':    ['Fear of waves', 'Competition nerves', 'Focus & flow state', 'Breathing techniques', 'Something else / Write my own'],
+    'Injury & recovery':      ['Shoulder pain', 'Back pain', 'Knee or ankle', 'Injury prevention', 'Something else / Write my own'],
+  };
+
+  const Q3_OPTIONS = ['Quick tip or cue', 'Drill or exercise', 'Full breakdown', 'Training programme', 'Something else / Write my own'];
+
   const getClarifyOptions = (userText) => {
     const lc = userText.toLowerCase();
     const content = CLARIFY_CATEGORIES.filter(c => c.keywords.length > 0);
@@ -5912,6 +5925,7 @@ export default function SurfCoachAgent() {
     if (!userText || userText.length < 4) return false;
     if (!!attachedFile) return false;
     if (window._coachMode === 'coach') return false;
+    if ((pendingQuestion?.answers?.length ?? 0) > 0) return false;
 
     const lc = userText.toLowerCase();
 
@@ -5932,6 +5946,35 @@ export default function SurfCoachAgent() {
     //   1 category, 1 hit   → topic guessed but intent unclear
     //   2+ categories match → genuinely multi-topic
     return true;
+  };
+
+  const handleClarifyChoice = (opt, step) => {
+    const prevAnswers = pendingQuestion?.answers || [];
+    const newAnswers = [...prevAnswers, opt];
+    const userMsg = { role: 'user', content: opt, displayContent: opt };
+
+    if (step === 1) {
+      const q2Opts = Q2_OPTIONS[opt] || ['Something else / Write my own'];
+      const q2Msg = {
+        role: 'assistant',
+        content: `QUESTION: Which part specifically?\nOPTIONS:\n${q2Opts.map(o => `- ${o}`).join('\n')}`,
+        isClarify: true,
+        clarifyStep: 2,
+      };
+      setMessages(prev => [...prev, userMsg, q2Msg]);
+      setPendingQuestion(prev => ({ ...prev, answers: newAnswers }));
+    } else if (step === 2) {
+      const q3Msg = {
+        role: 'assistant',
+        content: `QUESTION: What would be most useful?\nOPTIONS:\n${Q3_OPTIONS.map(o => `- ${o}`).join('\n')}`,
+        isClarify: true,
+        clarifyStep: 3,
+      };
+      setMessages(prev => [...prev, userMsg, q3Msg]);
+      setPendingQuestion(prev => ({ ...prev, answers: newAnswers }));
+    } else {
+      sendMessage(opt, true);
+    }
   };
 
   const sendMessage = async (text, skipClarify = false) => {
@@ -5983,9 +6026,10 @@ export default function SurfCoachAgent() {
         role: 'assistant',
         content: `QUESTION: What would you like help with?\nOPTIONS:\n${opts.map(o => `- ${o.label}`).join('\n')}`,
         isClarify: true,
+        clarifyStep: 1,
       };
       setMessages(prev => [...prev, userMsg, clarifyMsg]);
-      setPendingQuestion({ originalText: userText, clarifyContext: clarifyMsg.content });
+      setPendingQuestion({ originalText: userText, answers: [], clarifyContext: clarifyMsg.content });
       return;
     }
 
@@ -6020,9 +6064,26 @@ export default function SurfCoachAgent() {
         ? `${userText}\n\n---\n${attachedFile.text}`
         : `Please analyse this file: ${attachedFile.name}. Provide coaching insights relevant to surf training, fitness or performance.\n\n---\n${attachedFile.text}`;
     } else {
-      // If this is a reply after a clarifying question, add context
       if (pendingQuestion) {
-        apiContent = `[Context: I previously asked "${pendingQuestion.originalText}" and Coach Vasco asked me to clarify. My clarification: ${userText}]`;
+        const ans = pendingQuestion.answers || [];
+        if (ans.length >= 2) {
+          const parts = [
+            pendingQuestion.originalText && `Original question: "${pendingQuestion.originalText}"`,
+            `Topic: ${ans[0]}`,
+            `Specific area: ${ans[1]}`,
+            `What I need: ${userText}`,
+          ].filter(Boolean);
+          apiContent = `[Coaching context — ${parts.join('. ')}]`;
+        } else if (ans.length === 1) {
+          const parts = [
+            pendingQuestion.originalText && `Original question: "${pendingQuestion.originalText}"`,
+            `Topic: ${ans[0]}`,
+            `Clarification: ${userText}`,
+          ].filter(Boolean);
+          apiContent = `[Coaching context — ${parts.join('. ')}]`;
+        } else {
+          apiContent = `[Context: I previously asked "${pendingQuestion.originalText}" and my clarification: ${userText}]`;
+        }
       } else {
         apiContent = userText;
       }
@@ -6310,6 +6371,7 @@ export default function SurfCoachAgent() {
             onOpenPostSession={() => { const s = getLatestUnreviewedSession(); if (s) setPendingPostSession(s); }}
             showNotifCard={showNotifCard}
             onDismissNotif={() => setShowNotifCard(false)}
+            onClarifyChoice={handleClarifyChoice}
             onSignOut={signOut} />
         )}
         {tab === 'quiz' && <div style={{ flex: 1, overflowY: 'auto' }}><FitnessQuiz onComplete={handleQuizComplete} mode={mode} initialResult={userProfile} /></div>}
