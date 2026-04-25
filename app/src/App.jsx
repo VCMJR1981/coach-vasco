@@ -5138,7 +5138,7 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
             );
           }
 
-          // ── CLARIFY MESSAGE — render as question + clickable option buttons ──
+          // ── CLARIFY MESSAGE — question label + full-width selection buttons ──
           if (msg.isClarify) {
             const qMatch = mainText.match(/QUESTION:\s*(.+)/);
             const optMatches = [...mainText.matchAll(/^-\s+(.+)$/gm)].map(m => m[1].trim());
@@ -5149,33 +5149,31 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                 <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, marginTop: '2px' }}>
                   <img src={CS_LOGO} alt="Coach Vasco" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <div style={{ maxWidth: '96%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ padding: '18px 20px', borderRadius: '4px 18px 18px 18px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(234,234,151,0.1)', fontSize: '15px', color: '#F1F3EC', lineHeight: '1.65', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ fontSize: '15px', color: '#F1F3EC', lineHeight: '1.55', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
                     {questionText}
                   </div>
                   {isLastMsg && optMatches.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {optMatches.map((opt, j) => {
-                          const isSomethingElse = opt.toLowerCase().includes('something else');
-                          return (
-                            <button key={j}
-                              onClick={() => {
-                                if (isSomethingElse) {
-                                  setInput('');
-                                  setTimeout(() => inputRef?.current?.focus(), 50);
-                                } else {
-                                  sendMessage(opt, true);
-                                }
-                              }}
-                              style={{ padding: '10px 16px', background: isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.08)', border: `1px solid ${isSomethingElse ? 'rgba(241,243,236,0.15)' : 'rgba(234,234,151,0.28)'}`, borderRadius: '100px', color: isSomethingElse ? 'rgba(241,243,236,0.4)' : '#EAEA97', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.3, textAlign: 'left' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = isSomethingElse ? 'rgba(241,243,236,0.05)' : 'rgba(234,234,151,0.18)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.3)' : 'rgba(234,234,151,0.6)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.15)' : 'rgba(234,234,151,0.28)'; }}>
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {optMatches.map((opt, j) => {
+                        const isSomethingElse = opt.toLowerCase().includes('something else');
+                        return (
+                          <button key={j}
+                            onClick={() => {
+                              if (isSomethingElse) {
+                                setInput('');
+                                setTimeout(() => inputRef?.current?.focus(), 50);
+                              } else {
+                                sendMessage(opt, true);
+                              }
+                            }}
+                            style={{ width: '100%', padding: '13px 18px', background: isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.07)', border: `1px solid ${isSomethingElse ? 'rgba(241,243,236,0.12)' : 'rgba(234,234,151,0.22)'}`, borderRadius: '10px', color: isSomethingElse ? 'rgba(241,243,236,0.4)' : '#F1F3EC', fontSize: '14px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.4, textAlign: 'left' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = isSomethingElse ? 'rgba(241,243,236,0.04)' : 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.25)' : 'rgba(234,234,151,0.5)'; e.currentTarget.style.color = isSomethingElse ? 'rgba(241,243,236,0.6)' : '#EAEA97'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.07)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.12)' : 'rgba(234,234,151,0.22)'; e.currentTarget.style.color = isSomethingElse ? 'rgba(241,243,236,0.4)' : '#F1F3EC'; }}>
+                            {opt}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
