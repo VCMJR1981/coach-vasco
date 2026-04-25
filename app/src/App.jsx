@@ -2248,10 +2248,10 @@ function buildSystemPrompt(userLevel, userProfile, messages) {
   }
 
   if (userProfile) {
-    const equipmentLabels = ['Surfboard only', 'Surfboard + Surfskate', 'Home setup (mat, bands, TRX)', 'Full gym', 'Surfskate + Full gym'];
+    const equipmentLabels = ['Surfboard', 'Surfskate', 'Home Kit', 'Full Gym'];
     const trainingDayLabels = ['1 day/week', '2 days/week', '3 days/week', '4-5 days/week', 'Daily'];
     const injuryLabels = ['None', 'Shoulder issue', 'Back/lower back pain', 'Knee pain or instability', 'Other limitation'];
-    const eqLabel = userProfile.equipment >= 0 ? equipmentLabels[userProfile.equipment] : 'Not specified';
+    const eqLabel = Array.isArray(userProfile.equipment) ? userProfile.equipment.map(i => equipmentLabels[i] ?? i).join(', ') : userProfile.equipment >= 0 ? equipmentLabels[userProfile.equipment] : 'Not specified';
     const tdLabel = userProfile.trainingDays >= 0 ? trainingDayLabels[userProfile.trainingDays] : 'Not specified';
     const injLabel = userProfile.injuries >= 0 ? injuryLabels[userProfile.injuries] : 'Not specified';
     prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
@@ -2978,7 +2978,7 @@ const ASSESSMENT_QUESTIONS = [
   {
     id: "equipment",
     q: "What equipment do you have access to?",
-    opts: ["Surfboard", "Surfskate", "Home setup (mat, bands, TRX)", "Full gym"],
+    opts: ["Surfboard", "Surfskate", "Home Kit", "Full Gym"],
     multi: true,
   },
   {
@@ -5156,14 +5156,25 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                   {isLastMsg && optMatches.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {optMatches.map((opt, j) => (
-                          <button key={j} onClick={() => sendMessage(opt, true)}
-                            style={{ padding: '10px 16px', background: 'rgba(234,234,151,0.08)', border: '1px solid rgba(234,234,151,0.28)', borderRadius: '100px', color: '#EAEA97', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.3, textAlign: 'left' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.18)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.6)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.28)'; }}>
-                            {opt}
-                          </button>
-                        ))}
+                        {optMatches.map((opt, j) => {
+                          const isSomethingElse = opt.toLowerCase().includes('something else');
+                          return (
+                            <button key={j}
+                              onClick={() => {
+                                if (isSomethingElse) {
+                                  setInput('');
+                                  setTimeout(() => inputRef?.current?.focus(), 50);
+                                } else {
+                                  sendMessage(opt, true);
+                                }
+                              }}
+                              style={{ padding: '10px 16px', background: isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.08)', border: `1px solid ${isSomethingElse ? 'rgba(241,243,236,0.15)' : 'rgba(234,234,151,0.28)'}`, borderRadius: '100px', color: isSomethingElse ? 'rgba(241,243,236,0.4)' : '#EAEA97', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.18s', lineHeight: 1.3, textAlign: 'left' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = isSomethingElse ? 'rgba(241,243,236,0.05)' : 'rgba(234,234,151,0.18)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.3)' : 'rgba(234,234,151,0.6)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = isSomethingElse ? 'transparent' : 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = isSomethingElse ? 'rgba(241,243,236,0.15)' : 'rgba(234,234,151,0.28)'; }}>
+                              {opt}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -5848,26 +5859,26 @@ export default function SurfCoachAgent() {
     default:        ['Reading your question…', 'Searching the knowledge library…', 'Putting your answer together…', 'Coaching in progress…'],
   };
 
-  const CLARIFY_PROMPT = `You are Coach Vasco — a surf, surfskate and surf fitness coach with 15+ years experience. The user sent a message that needs one clarifying question before you can give a focused answer.
+  // ── CLARIFICATION GATEKEEPER — keyword-based, zero tokens ────────────────
+  const CLARIFY_CATEGORIES = [
+    { label: 'Technique correction',   keywords: ['technique','turn','pop','popup','pop-up','cutback','bottom turn','snap','carve','take-off','takeoff','stance','position','foot','paddle','paddling'] },
+    { label: 'Training & fitness',     keywords: ['train','workout','exercise','gym','fitness','strength','endurance','conditioning','dry land','programme','program','plan','session','week'] },
+    { label: 'Surfskate drills',       keywords: ['surfskate','skate','pump','carver','yow','deck','land','off-water','dry'] },
+    { label: 'Wave reading & tactics', keywords: ['wave','read','lineup','peak','swell','tide','wind','crowd','position','priority','set','break','beach','point'] },
+    { label: 'Injury & recovery',      keywords: ['hurt','pain','injur','sore','ache','recovery','rehab','shoulder','knee','back','wrist','ankle'] },
+    { label: 'Something else',         keywords: [] },
+  ];
 
-Your job: ask ONE surf/fitness-relevant clarifying question, then provide exactly 3 clickable answer options that are directly relevant to surfing, surfskate, fitness, or technique.
-
-Output format — use EXACTLY this structure:
-
-QUESTION: [one short question, warm and direct, like a coach on the beach]
-OPTIONS:
-- [option 1 — surf/fitness relevant, 3-6 words max]
-- [option 2 — surf/fitness relevant, 3-6 words max]
-- [option 3 — surf/fitness relevant, 3-6 words max]
-
-Rules:
-- ONE question only — never ask about traffic, marketing, or anything unrelated to surfing/fitness
-- Exactly 3 options — no more, no less
-- Options must be about surf technique, surfskate, fitness, training, equipment, or mindset
-- Options must be short enough to fit on a button (3-6 words)
-- Do not answer the question yet`;
-
-  const AMBIGUOUS_THRESHOLD = 1; // if total keyword score below this, ask first
+  const getClarifyOptions = (userText) => {
+    const lc = userText.toLowerCase();
+    const matched = CLARIFY_CATEGORIES.filter(c =>
+      c.keywords.length === 0 || c.keywords.some(k => lc.includes(k))
+    );
+    // Always include "Something else" at the end
+    const withoutFallback = matched.filter(c => c.label !== 'Something else');
+    const top = withoutFallback.slice(0, 3);
+    return [...top, { label: 'Something else', keywords: [] }];
+  };
 
   const detectTool = (userText) => {
     const lc = userText.toLowerCase();
@@ -5883,14 +5894,19 @@ Rules:
   };
 
   const isAmbiguous = (userText) => {
-    if (!userText || userText.length < 8) return false;
+    if (!userText || userText.length < 4) return false;
     if (!!attachedFile) return false;
-    // Never clarify if user already selected a level — they know what they want
     if (userLevel) return false;
     if (window._coachMode === 'coach') return false;
     if (userText.toLowerCase().match(/program|programme|plan|week|session|block/)) return false;
     const wordCount = userText.trim().split(/\s+/).length;
-    return wordCount < 4;
+    // Trigger gatekeeper for short ambiguous messages (1-3 words)
+    // or slightly longer but still vague (4-5 words with no strong keyword)
+    const lc = userText.toLowerCase();
+    const hasStrongKeyword = lc.match(/pop.?up|bottom turn|cutback|paddle|paddling|surfskate|pump|snap|carve|endurance|strength|injury|pain|wave reading|lineup|nutrition|diet|mental|fear|anxiety/);
+    if (wordCount <= 3) return true;
+    if (wordCount <= 5 && !hasStrongKeyword) return true;
+    return false;
   };
 
   const sendMessage = async (text, skipClarify = false) => {
@@ -5934,39 +5950,18 @@ Rules:
       return;
     }
 
-    // Check if we should ask a clarifying question first
+    // ── CLARIFICATION GATEKEEPER — instant, zero tokens ──────────────────────
     if (!skipClarify && isAmbiguous(userText)) {
-      // Run a lightweight clarify call
       const userMsg = { role: 'user', content: userText, displayContent: userText };
-      const newMessages = [...messages, userMsg];
-      setMessages(newMessages);
-      setLoading(true);
-      setLoadingStatus('Understanding your question…');
-
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 200,
-            system: CLARIFY_PROMPT,
-            messages: [{ role: 'user', content: userText }],
-          }),
-        });
-        const data = await res.json();
-        const question = data.content?.[0]?.text || null;
-        if (question) {
-          setMessages([...newMessages, { role: 'assistant', content: question, isClarify: true }]);
-          setPendingQuestion({ originalText: userText, clarifyContext: question });
-          setLoading(false);
-          setLoadingStatus('');
-          return;
-        }
-      } catch {}
-      setLoading(false);
-      setLoadingStatus('');
-      // If clarify call fails, fall through to normal answer
+      const opts = getClarifyOptions(userText);
+      const clarifyMsg = {
+        role: 'assistant',
+        content: `QUESTION: What would you like help with?\nOPTIONS:\n${opts.map(o => `- ${o.label}`).join('\n')}`,
+        isClarify: true,
+      };
+      setMessages(prev => [...prev, userMsg, clarifyMsg]);
+      setPendingQuestion({ originalText: userText, clarifyContext: clarifyMsg.content });
+      return;
     }
 
     // ── BUILD MESSAGE CONTENT ─────────────────────────────────────────────────
@@ -6313,3 +6308,4 @@ Rules:
     </div>
   );
 }
+
