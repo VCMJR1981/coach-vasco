@@ -2248,10 +2248,22 @@ function buildSystemPrompt(userLevel, userProfile, messages) {
   }
 
   if (userProfile) {
-    const equipmentLabels = ['Surfboard only', 'Surfboard + Surfskate', 'Home setup (mat, bands, TRX)', 'Full gym', 'Surfskate + Full gym'];
     const trainingDayLabels = ['1 day/week', '2 days/week', '3 days/week', '4-5 days/week', 'Daily'];
     const injuryLabels = ['None', 'Shoulder issue', 'Back/lower back pain', 'Knee pain or instability', 'Other limitation'];
-    const eqLabel = userProfile.equipment >= 0 ? equipmentLabels[userProfile.equipment] : 'Not specified';
+    const eq = userProfile.equipment;
+    let eqLabel = 'Not specified';
+    if (eq && typeof eq === 'object') {
+      const parts = [];
+      if (eq.surfboard) parts.push('Surfboard');
+      if (eq.surfskate) parts.push('Surfskate');
+      if (eq.gym === 'full') parts.push('Full Gym');
+      else if (eq.gym === 'home') parts.push('Home Kit (mat, bands, TRX)');
+      eqLabel = parts.length ? parts.join(' + ') : 'Not specified';
+    } else if (typeof eq === 'number' && eq >= 0) {
+      // Legacy fallback
+      const equipmentLabels = ['Surfboard only', 'Surfboard + Surfskate', 'Home setup (mat, bands, TRX)', 'Full gym', 'Surfskate + Full gym'];
+      eqLabel = equipmentLabels[eq] || 'Not specified';
+    }
     const tdLabel = userProfile.trainingDays >= 0 ? trainingDayLabels[userProfile.trainingDays] : 'Not specified';
     const injLabel = userProfile.injuries >= 0 ? injuryLabels[userProfile.injuries] : 'Not specified';
     prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
@@ -2830,7 +2842,7 @@ const ASSESSMENT_QUESTIONS = [
   {
     id: "equipment",
     q: "What equipment do you have access to?",
-    opts: ["Surfboard only", "Surfboard + Surfskate", "Home setup (mat, bands, TRX)", "Full gym access", "Surfskate + Full gym", "Surf + Surfskate + Gym"],
+    custom: "equipment",
   },
   {
     id: "training_days",
@@ -2862,7 +2874,17 @@ function scoreAssessment(answers) {
   const goal = val("goal");                 // 0-4
   const age = val("age");                   // 0-3
   const gender = val("gender");             // 0=woman, 1=man, 2=prefer not
-  const equipment = val("equipment");       // 0=board only, 1=+surfskate, 2=home gym, 3=full gym, 4=surfskate+gym
+  const equipmentRaw = val("equipment");
+  let equipmentLabel = "Not specified";
+  if (equipmentRaw && typeof equipmentRaw === "object") {
+    const parts = [];
+    if (equipmentRaw.surfboard) parts.push("Surfboard");
+    if (equipmentRaw.surfskate) parts.push("Surfskate");
+    if (equipmentRaw.gym === "full") parts.push("Full Gym");
+    else if (equipmentRaw.gym === "home") parts.push("Home Kit (mat, bands, TRX)");
+    equipmentLabel = parts.length ? parts.join(" + ") : "Not specified";
+  }
+  const equipment = equipmentRaw;
   const trainingDays = val("training_days");// 0=1day, 1=2days, 2=3days, 3=4-5days, 4=daily
   const injuries = val("injuries");         // 0=none, 1=shoulder, 2=back, 3=knee, 4=other
 
@@ -3008,6 +3030,7 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
   const [multiSelected, setMultiSelected] = useState([]);
   const [injuryOther, setInjuryOther] = useState('');
   const [result, setResult] = useState(initialResult || null);
+  const [equipmentSel, setEquipmentSel] = useState({ surfboard: false, surfskate: false, gym: null });
 
   // Build active question list (skip questions based on previous answers)
   const activeQuestions = ASSESSMENT_QUESTIONS.filter((q, i) => {
@@ -3022,6 +3045,19 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
   const handleNext = () => {
     const fullIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === current.id);
     const newAnswers = [...answers];
+
+    if (current.custom === 'equipment') {
+      if (!equipmentSel.surfboard && !equipmentSel.surfskate && !equipmentSel.gym) return;
+      newAnswers[fullIdx] = { ...equipmentSel };
+      if (step < activeQuestions.length - 1) {
+        setAnswers(newAnswers);
+        setSelected(null);
+        setStep(step + 1);
+      } else {
+        setResult(scoreAssessment(newAnswers));
+      }
+      return;
+    }
 
     if (current.multi) {
       if (multiSelected.length === 0) return;
@@ -3153,6 +3189,42 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
 
       <h2 style={{ fontSize: "20px", fontWeight: "normal", lineHeight: "1.4", marginBottom: "28px" }}>{current.q}</h2>
 
+      {current.custom === 'equipment' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          {/* Checkboxes: Surfboard + Surfskate */}
+          {[
+            { key: 'surfboard', label: 'Surfboard' },
+            { key: 'surfskate', label: 'Surfskate' },
+          ].map(({ key, label }) => {
+            const active = equipmentSel[key];
+            return (
+              <button key={key}
+                onClick={() => setEquipmentSel(prev => ({ ...prev, [key]: !prev[key] }))}
+                style={{ ...S.btn(active), textAlign: 'left', borderRadius: '12px', padding: '14px 18px', fontSize: '14px' }}>
+                <span style={{ marginRight: '10px', fontSize: '16px', lineHeight: 1 }}>{active ? '☑' : '☐'}</span>
+                {label}
+              </button>
+            );
+          })}
+          {/* Divider */}
+          <div style={{ borderTop: '1px solid rgba(234,234,151,0.12)', margin: '6px 0' }} />
+          {/* Radio: gym options */}
+          {[
+            { key: 'full', label: 'Full Gym' },
+            { key: 'home', label: 'Home Kit (mat, bands, TRX)' },
+          ].map(({ key, label }) => {
+            const active = equipmentSel.gym === key;
+            return (
+              <button key={key}
+                onClick={() => setEquipmentSel(prev => ({ ...prev, gym: prev.gym === key ? null : key }))}
+                style={{ ...S.btn(active), textAlign: 'left', borderRadius: '12px', padding: '14px 18px', fontSize: '14px' }}>
+                <span style={{ marginRight: '10px', fontSize: '16px', lineHeight: 1 }}>{active ? '◉' : '○'}</span>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
         {current.opts.map((opt, i) => {
           const isMulti = current.multi;
@@ -3186,6 +3258,7 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
           );
         })}
       </div>
+      )}
 
       {/* Custom input for "Other" in multi-select questions */}
       {current.multi && multiSelected.includes(current.opts.length - 1) && (
@@ -3203,8 +3276,17 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
         </div>
       )}
 
-      <button onClick={handleNext} disabled={current.multi ? multiSelected.length === 0 : selected === null}
-        style={{ ...S.btn(current.multi ? multiSelected.length > 0 : selected !== null), width: "100%", padding: "14px", fontSize: "15px", borderRadius: "12px", fontWeight: "600" }}>
+      <button onClick={handleNext}
+        disabled={
+          current.custom === 'equipment'
+            ? (!equipmentSel.surfboard && !equipmentSel.surfskate && !equipmentSel.gym)
+            : current.multi ? multiSelected.length === 0 : selected === null
+        }
+        style={{ ...S.btn(
+          current.custom === 'equipment'
+            ? (equipmentSel.surfboard || equipmentSel.surfskate || !!equipmentSel.gym)
+            : current.multi ? multiSelected.length > 0 : selected !== null
+        ), width: "100%", padding: "14px", fontSize: "15px", borderRadius: "12px", fontWeight: "600" }}>
         {step < activeQuestions.length - 1 ? "Next →" : "See My Results"}
       </button>
     </div>
