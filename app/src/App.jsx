@@ -4936,7 +4936,7 @@ function StarterQuestions({ level, sendMessage, inputRef }) {
   );
 }
 
-function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif }) {
+function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif, signOut }) {
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
@@ -6288,7 +6288,8 @@ Rules:
             pendingPostSession={pendingPostSession}
             onOpenPostSession={() => { const s = getLatestUnreviewedSession(); if (s) setPendingPostSession(s); }}
             showNotifCard={showNotifCard}
-            onDismissNotif={() => setShowNotifCard(false)} />
+            onDismissNotif={() => setShowNotifCard(false)}
+            signOut={signOut} />
         )}
         {tab === 'quiz' && <div style={{ flex: 1, overflowY: 'auto' }}><FitnessQuiz onComplete={handleQuizComplete} mode={mode} initialResult={userProfile} /></div>}
         {tab === 'plan' && <div style={{ flex: 1, overflowY: 'auto' }}><TrainingPlan /></div>}
