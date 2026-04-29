@@ -5748,10 +5748,33 @@ Rules:
   const isAmbiguous = (userText) => {
     if (!userText || userText.length < 8) return false;
     if (!!attachedFile) return false;
-    // Never clarify if user already selected a level — they know what they want
     if (userLevel) return false;
     if (window._coachMode === 'coach') return false;
-    if (userText.toLowerCase().match(/program|programme|plan|week|session|block/)) return false;
+
+    const lc = userText.toLowerCase();
+
+    // Any surf/fitness intent → answer directly, never clarify
+    const clearIntent = [
+      // surf technique
+      'pop.?up','take.?off','paddle','bottom turn','cutback','snap','carve','turn','wave',
+      'board','surf','wipeout','duck dive','turtle','stance','position','rail','trim',
+      // surfskate
+      'surfskate','skate','pump','carver','yow','smoothstar','slide','pivot',
+      // fitness
+      'fitness','train','gym','workout','exercise','strength','pull.?up','push.?up',
+      'endurance','conditioning','stretch','mobility','injury','shoulder','back','knee',
+      // progression
+      'progress','level','improve','better','technique','correction','help.*with',
+      'learn','beginner','intermediate','advanced','session','practice','drill',
+      // goal language
+      'what should','how do i','how can i','why do i','why am i','why is my',
+      'what am i','i keep','i cant','i can't','i struggle','i want to','my.*is wrong',
+      'my.*feels','my.*keeps','problem with','issue with',
+    ];
+
+    if (clearIntent.some(pattern => lc.match(new RegExp(pattern)))) return false;
+
+    // Only truly vague short messages get clarified
     const wordCount = userText.trim().split(/\s+/).length;
     return wordCount < 4;
   };
