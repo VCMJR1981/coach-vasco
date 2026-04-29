@@ -2680,6 +2680,83 @@ function getSurfScoreSentence(scoreValue, sessions, gender) {
 // ─── MODULE SELECTOR ─────────────────────────────────────────────────────────
 // Scores each module against the query + recent history, returns top matches.
 
+// ─── STARTER QUESTIONS — homepage shortcut buttons ───────────────────────────
+const STARTER_QUESTIONS = {
+  beginner: [
+    "Why do I keep nose-diving on take-off?",
+    "How do I make my pop-up faster?",
+    "Why am I so exhausted before I catch any waves?",
+    "How do I know which wave is mine?",
+    "Why does my stance feel stiff and off-balance?",
+    "Am I ready to move to a smaller board?",
+  ],
+  intermediate: [
+    "I feel stuck — how do I start improving again?",
+    "How do I generate speed on weak waves?",
+    "Why do my turns slide instead of carving?",
+    "How do I read where the wave will break?",
+    "I freeze on bigger drops — how do I commit?",
+    "Should I get a smaller board or is it my technique?",
+  ],
+  advanced: [
+    "How do I hit the lip more vertically?",
+    "Why do my turns feel good but look weak on video?",
+    "How do I keep speed through a full cutback?",
+    "How do I position myself for the barrel?",
+    "How do I pick the right section for an air?",
+    "How should I adjust my fins for different conditions?",
+  ],
+};
+
+// Map a user profile or level string to a starter pool key
+function resolveStarterLevel({ userProfile, userLevel }) {
+  if (userProfile?.surfLabel) {
+    const lbl = userProfile.surfLabel.toLowerCase();
+    if (lbl.includes('advanced')) return 'advanced';
+    if (lbl.includes('intermediate')) return 'intermediate';
+    return 'beginner';
+  }
+  if (userLevel === 'advanced') return 'advanced';
+  if (userLevel === 'intermediate') return 'intermediate';
+  return 'beginner';
+}
+
+// Pick 4 starter questions: 3 from current level + 1 stretch from next level (advanced gets 4 from own pool)
+// Rotates based on localStorage history of tapped questions
+function getStarterQuestions(level) {
+  let tapped = [];
+  try { tapped = JSON.parse(localStorage.getItem('coachVasco_tappedStarters') || '[]'); } catch {}
+  const tappedSet = new Set(tapped);
+
+  const currentPool = STARTER_QUESTIONS[level] || STARTER_QUESTIONS.beginner;
+  const sortByFreshness = (arr) => [...arr].sort((a, b) => {
+    const aTapped = tappedSet.has(a) ? 1 : 0;
+    const bTapped = tappedSet.has(b) ? 1 : 0;
+    return aTapped - bTapped;
+  });
+
+  const main = sortByFreshness(currentPool).slice(0, 3);
+
+  let stretchPool = null;
+  if (level === 'beginner') stretchPool = STARTER_QUESTIONS.intermediate;
+  else if (level === 'intermediate') stretchPool = STARTER_QUESTIONS.advanced;
+
+  if (stretchPool) {
+    const stretch = sortByFreshness(stretchPool)[0];
+    return [...main, stretch];
+  }
+  // Advanced → fill with 4 from own pool
+  return sortByFreshness(currentPool).slice(0, 4);
+}
+
+function recordStarterTapped(question) {
+  try {
+    const prev = JSON.parse(localStorage.getItem('coachVasco_tappedStarters') || '[]');
+    const next = [question, ...prev.filter(q => q !== question)].slice(0, 20);
+    localStorage.setItem('coachVasco_tappedStarters', JSON.stringify(next));
+  } catch {}
+}
+
 const SUGGESTED_QUESTIONS = {
   surfer: {
     beginner: [
@@ -4827,6 +4904,38 @@ function HistorySidebar({ history, currentId, onLoad, onNew, onDelete, onClose }
 
 
 // ─── CHAT TAB ────────────────────────────────────────────────────────────────
+// ─── Starter Questions component ─────────────────────────────────────────────
+function StarterQuestions({ level, sendMessage, inputRef }) {
+  const questions = getStarterQuestions(level);
+  const handleTap = (q) => {
+    recordStarterTapped(q);
+    sendMessage(q, true);
+  };
+  return (
+    <div style={{ marginTop: '24px', width: '100%', maxWidth: '480px' }}>
+      <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '10px', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left' }}>
+        Quick start
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+        {questions.map((q, i) => (
+          <button key={i} onClick={() => handleTap(q)}
+            style={{ width: '100%', padding: '11px 14px', background: 'rgba(234,234,151,0.05)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.75)', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.05)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.75)'; }}>
+            {q}
+          </button>
+        ))}
+        <button onClick={() => { setTimeout(() => inputRef.current?.focus(), 50); }}
+          style={{ width: '100%', padding: '11px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.4)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s', marginTop: '4px' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.6)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.4)'; }}>
+          Something else — type your own
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ChatTab({ messages, input, setInput, loading, loadingStatus, started, setStarted, sendMessage, setMessages, bottomRef, inputRef, userProfile, attachedFile, onAttachFile, onClearFile, onOpenHistory, topic, setTopic, setTab, mode, setMode, coachFitnessMode, setCoachFitnessMode, userLevel, setUserLevel, hasAssessed, showPreSession, setShowPreSession, pendingPostSession, onOpenPostSession, showNotifCard, onDismissNotif }) {
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -4909,6 +5018,9 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.22)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
                   I'm about to surf
                 </button>
+
+                {/* Starter Questions — homepage shortcut buttons */}
+                <StarterQuestions level={resolveStarterLevel({ userProfile, userLevel })} sendMessage={sendMessage} inputRef={inputRef} />
               </>
             ) : (
               <>
@@ -4963,6 +5075,9 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                     ))}
                   </div>
                 </div>
+
+                {/* Starter Questions — homepage shortcut buttons (default beginner pool) */}
+                <StarterQuestions level="beginner" sendMessage={sendMessage} inputRef={inputRef} />
               </>
             )}
           </div>
@@ -5768,7 +5883,7 @@ Rules:
       'learn','beginner','intermediate','advanced','session','practice','drill',
       // goal language
       'what should','how do i','how can i','why do i','why am i','why is my',
-      'what am i','i keep','i cant','i can't','i struggle','i want to','my.*is wrong',
+      'what am i','i keep','i cant',"i can't",'i struggle','i want to','my.*is wrong',
       'my.*feels','my.*keeps','problem with','issue with',
     ];
 
