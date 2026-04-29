@@ -4107,23 +4107,23 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       <div style={{ fontSize: '9px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '8px', textAlign: 'left' }}>
         Today's focus
       </div>
-      <div
-        onClick={() => onStartPreSession(focus.technique)}
-        style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.1)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.3)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
-          </div>
-          <div style={{ fontSize: '12px', color: 'rgba(234,234,151,0.3)', flexShrink: 0, marginTop: '2px' }}>→</div>
+      <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
         </div>
         {hasLastNote && focus.source === 'session' && (
-          <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
+          <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
             "{lastSession.observation.slice(0, 100)}{lastSession.observation.length > 100 ? '...' : ''}"
           </div>
         )}
+        <button
+          onClick={() => onStartPreSession(focus.technique)}
+          style={{ width: '100%', padding: '11px', background: '#EAEA97', border: 'none', borderRadius: '8px', color: '#2A2A29', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.18s', letterSpacing: '0.01em' }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#f5f5a0'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#EAEA97'; }}>
+          I'm about to surf →
+        </button>
       </div>
     </div>
   );
@@ -5009,15 +5009,6 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                     <span style={{ marginLeft: 'auto', color: 'rgba(234,234,151,0.4)', fontSize: '14px' }}>→</span>
                   </div>
                 )}
-
-                {/* Pre-session button — always on */}
-                <button
-                  onClick={() => setShowPreSession(true)}
-                  style={{ marginTop: pendingPostSession ? '8px' : '20px', padding: '12px 28px', background: 'rgba(234,234,151,0.08)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", letterSpacing: '0.02em', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.08)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.22)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
-                  I'm about to surf
-                </button>
 
                 {/* Starter Questions — homepage shortcut buttons */}
                 <StarterQuestions level={resolveStarterLevel({ userProfile, userLevel })} sendMessage={sendMessage} inputRef={inputRef} />
