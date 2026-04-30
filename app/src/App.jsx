@@ -2408,6 +2408,7 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
+        coaching: `Work on ${focus} again — repetition is how it sticks.`,
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2431,6 +2432,7 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
+      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
       source: 'pattern',
     };
   }
@@ -2455,6 +2457,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
+    coaching: `This is where your progression starts. Own it.`,
     source: 'assessment',
   };
 }
@@ -4121,7 +4124,10 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginBottom: '2px' }}>{focus.reason}</div>
+          {focus.coaching && (
+            <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.5)', lineHeight: 1.5, marginTop: '4px' }}>{focus.coaching}</div>
+          )}
         </div>
         {hasLastNote && focus.source === 'session' && (
           <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -4468,7 +4474,10 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
   return (
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={sheet}>
-        <div style={{ width: '36px', height: '4px', background: 'rgba(241,243,236,0.12)', borderRadius: '2px', alignSelf: 'center' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ width: '36px', height: '4px', background: 'rgba(241,243,236,0.12)', borderRadius: '2px' }} />
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.3)', fontSize: '20px', cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>×</button>
+        </div>
 
         {step === 0 && (<>
           <div>
@@ -4614,20 +4623,28 @@ function PostSessionModal({ session, userProfile, onClose }) {
   const [note, setNote] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [unlockEvent, setUnlockEvent] = useState(null);
+  // Fitness-specific
+  const [fitExercisesFelt, setFitExercisesFelt] = useState('');
+  const [fitBodyPart, setFitBodyPart] = useState('');
+  const [fitEnergy, setFitEnergy] = useState('');
 
   // ── derived ────────────────────────────────────────────────────────────────
   const gender = userProfile?.gender ?? 2;
   const isWoman = gender === 0;
   const isSurf = session.type === 'surf';
+  const isFitness = session.type === 'fitness';
+  const isSurfskate = session.type === 'surfskate';
   const focus = session.focus || 'technique';
   const coachTask = session.coachTask || null;
 
-  // Steps: surf = 0→1→2→3→4, non-surf = 0→1→2→3
-  // 0: rating, 1: waves(surf)/review(non-surf), 2: review(surf)/loading(non-surf),
-  // 3: loading(surf)/done(non-surf), 4: done(surf)
+  // Steps:
+  //   surf:      0(rating)→1(waves)→2(review)→3(loading)→4(done)
+  //   fitness:   0(rating)→'f1'(exercises felt)→'f2'(body part)→'f3'(energy)→'fload'(loading)→'fdone'(done)
+  //   surfskate: 0(rating)→'sk1'(feel)→'sk2'(connection)→'sk3'(notes)→'skload'→'skdone'
+  //   other:     0→1(review)→2(loading)→3(done)
   const S_REVIEW  = isSurf ? 2 : 1;
-  const S_LOADING = isSurf ? 3 : 2;
-  const S_DONE    = isSurf ? 4 : 3;
+  const S_LOADING = isSurf ? 3 : (isFitness ? 'fload' : isSurfskate ? 'skload' : 2);
+  const S_DONE    = isSurf ? 4 : (isFitness ? 'fdone' : isSurfskate ? 'skdone' : 3);
 
   // ── save + score ───────────────────────────────────────────────────────────
   const persistSession = (coaching) => {
@@ -4636,6 +4653,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
       const updated = {
         ...session, rating, waveCount, focusWorked,
         otherNotes, observation: coaching, postTime: Date.now(),
+        ...(isFitness ? { fitExercisesFelt, fitBodyPart, fitEnergy } : {}),
       };
       saveSessions(all.map(s => s.id === session.id ? updated : s));
       const result = updateSurfScore(userProfile, updated);
@@ -4653,15 +4671,39 @@ function PostSessionModal({ session, userProfile, onClose }) {
     // Save first — data is never lost
     persistSession('');
 
-    const sys = [
+    const sys = isFitness ? [
+      'You are Coach Vasco — surf fitness specialist.',
+      `Fitness session targeting surf technique: "${focus}".`,
+      session.cue ? `Exercises prescribed: ${session.cue}.` : '',
+      `Rating: ${rating}/5.`,
+      fitExercisesFelt ? `How exercises felt: "${fitExercisesFelt}".` : '',
+      fitBodyPart ? `Felt it in: "${fitBodyPart}".` : '',
+      fitEnergy ? `Energy after: "${fitEnergy}".` : '',
+      otherNotes ? `Notes: "${otherNotes}".` : '',
+      isWoman
+        ? 'Tone: acknowledge effort, connect gym work to surf movement, one progression.'
+        : 'Tone: direct, connect gym work to surf performance, one specific next action.',
+      'Rules: max 3 sentences. Reference the exercises prescribed. Connect muscle work to surf technique. End with one adjustment or progression for next session.',
+    ].filter(Boolean).join(' ') : isSurfskate ? [
+      'You are Coach Vasco — surfskate specialist.',
+      `Surfskate session. Surface: ${session.surface === 'ramp' ? 'Ramps & Bowl' : 'Flat ground'}. Technique: "${focus}".`,
+      session.cue ? `Pre-session cues: ${session.cue}.` : '',
+      `Rating: ${rating}/5.`,
+      focusWorked ? `How it felt: "${focusWorked}".` : '',
+      otherNotes ? `Notes: "${otherNotes}".` : '',
+      isWoman
+        ? 'Tone: acknowledge effort, connect board movement to surf movement, one carry-forward.'
+        : 'Tone: direct, connect board movement to surf performance, one next drill.',
+      'Rules: max 3 sentences. Use board/concrete movement language. Connect to surf transfer. End with one surfskate drill for next session.',
+    ].filter(Boolean).join(' ') : [
       'You are Coach Vasco.',
-      `Session: ${session.type}. Technique: "${focus}".`,
+      `Surf session. Technique: "${focus}".`,
       coachTask ? `Coach task: "${coachTask}". Close this loop first.` : '',
       session.registryCues?.length
         ? `Pre-session cues: ${session.registryCues.join('; ')}.`
         : session.cue ? `Pre-session cue: "${session.cue}".` : '',
       `Rating: ${rating}/5.`,
-      isSurf && waveCount ? `Waves: ${waveCount}.` : '',
+      waveCount ? `Waves: ${waveCount}.` : '',
       `How it went: "${focusWorked}".`,
       otherNotes ? `Other: "${otherNotes}".` : '',
       isWoman
@@ -4761,7 +4803,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
             <div style={{ display: 'flex', gap: '8px' }}>
               {[['1','Rough'],['2','Ok'],['3','Solid'],['4','Good'],['5','On fire']].map(([v, l]) => (
                 <button key={v}
-                  onClick={() => { setRating(Number(v)); setStep(isSurf ? 1 : S_REVIEW); }}
+                  onClick={() => { setRating(Number(v)); setStep(isSurf ? 1 : isFitness ? 'f1' : isSurfskate ? 'sk1' : S_REVIEW); }}
                   style={{ flex: 1, padding: '14px 4px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.12)', borderRadius: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontFamily: "'Inter','Helvetica Neue',sans-serif", touchAction: 'manipulation' }}>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#EAEA97' }}>{v}</span>
                   <span style={{ fontSize: '10px', color: 'rgba(241,243,236,0.3)', letterSpacing: '0.04em' }}>{l}</span>
@@ -4789,6 +4831,152 @@ function PostSessionModal({ session, userProfile, onClose }) {
             </div>
             <button onClick={() => setStep(S_REVIEW)} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.18)', fontSize: '12px', cursor: 'pointer', alignSelf: 'center' }}>skip</button>
           </>
+        )}
+
+        {/* FITNESS — f1: How did the exercises feel */}
+        {step === 'f1' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>How did the exercises feel?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Focus: <span style={{ color: '#EAEA97' }}>{focus}</span></div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {['Felt strong throughout', 'Started well, faded', 'Hard but managed', 'Struggled — too heavy/intense'].map(opt => (
+              <button key={opt} onClick={() => { setFitExercisesFelt(opt); setStep('f2'); }}
+                style={{ width: '100%', padding: '14px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.7)', fontSize: '14px', cursor: 'pointer', textAlign: 'left', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.15s', touchAction: 'manipulation' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>)}
+
+        {/* FITNESS — f2: Did you feel it in the right place */}
+        {step === 'f2' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Did you feel it in the right place?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Were the right muscles working?</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {['Yes — exactly where I should', 'Partly', 'Not sure', 'Wrong muscles compensating'].map(opt => (
+              <button key={opt} onClick={() => { setFitBodyPart(opt); setStep('f3'); }}
+                style={{ width: '100%', padding: '14px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.7)', fontSize: '14px', cursor: 'pointer', textAlign: 'left', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.15s', touchAction: 'manipulation' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>)}
+
+        {/* FITNESS — f3: Energy after */}
+        {step === 'f3' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Energy after?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Helps plan your next surf session</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {['Fresh — could surf now', 'Tired but recovered', 'Need a rest day'].map(opt => (
+              <button key={opt} onClick={() => { setFitEnergy(opt); setStep('fnote'); }}
+                style={{ width: '100%', padding: '14px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.7)', fontSize: '14px', cursor: 'pointer', textAlign: 'left', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.15s', touchAction: 'manipulation' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>)}
+
+        {/* FITNESS — fnote: Optional note then coaching */}
+        {step === 'fnote' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Anything else?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Optional — what felt hard, what to adjust</div>
+          </div>
+          <textarea rows={3} value={otherNotes} onChange={e => setOtherNotes(e.target.value)}
+            placeholder="Leave empty to skip..."
+            style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(234,234,151,0.12)', borderRadius: '10px', padding: '10px 12px', color: '#F1F3EC', fontSize: '16px', outline: 'none', resize: 'none', fontFamily: "'Inter','Helvetica Neue',sans-serif", boxSizing: 'border-box' }} />
+          <button onClick={getNote}
+            style={{ width: '100%', padding: '14px', background: '#EAEA97', border: 'none', borderRadius: '10px', color: '#2A2A29', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.2s', touchAction: 'manipulation' }}>
+            Get coaching note
+          </button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.18)', fontSize: '12px', cursor: 'pointer', alignSelf: 'center' }}>skip for now</button>
+        </>)}
+
+        {/* SURFSKATE — sk1: How did it feel */}
+        {step === 'sk1' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>How did it feel?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Focus: <span style={{ color: '#EAEA97' }}>{focus}</span>{session.surface ? ` · ${session.surface === 'ramp' ? 'Ramps & Bowl' : 'Flat ground'}` : ''}</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {['Locked in', 'Getting there', 'Timing was off', "Couldn't connect"].map(opt => (
+              <button key={opt} onClick={() => { setFocusWorked(opt); setStep('sk2'); }}
+                style={{ width: '100%', padding: '14px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.7)', fontSize: '14px', cursor: 'pointer', textAlign: 'left', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.15s', touchAction: 'manipulation' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>)}
+
+        {/* SURFSKATE — sk2: Surf connection */}
+        {step === 'sk2' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Did you feel the surf connection?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Did the movement feel like surfing?</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {['Yes — it transferred', 'Sometimes', 'Not yet'].map(opt => (
+              <button key={opt} onClick={() => { setOtherNotes(prev => prev + (prev ? ' | ' : '') + `Connection: ${opt}`); setStep('sk3'); }}
+                style={{ width: '100%', padding: '14px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.7)', fontSize: '14px', cursor: 'pointer', textAlign: 'left', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.15s', touchAction: 'manipulation' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>)}
+
+        {/* SURFSKATE — sk3: Optional note then coaching */}
+        {step === 'sk3' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Anything else?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Optional — what you noticed, what to try next</div>
+          </div>
+          <textarea rows={3} value={otherNotes} onChange={e => setOtherNotes(e.target.value)}
+            placeholder="Leave empty to skip..."
+            style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(234,234,151,0.12)', borderRadius: '10px', padding: '10px 12px', color: '#F1F3EC', fontSize: '16px', outline: 'none', resize: 'none', fontFamily: "'Inter','Helvetica Neue',sans-serif", boxSizing: 'border-box' }} />
+          <button onClick={getNote}
+            style={{ width: '100%', padding: '14px', background: '#EAEA97', border: 'none', borderRadius: '10px', color: '#2A2A29', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.2s', touchAction: 'manipulation' }}>
+            Get coaching note
+          </button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.18)', fontSize: '12px', cursor: 'pointer', alignSelf: 'center' }}>skip for now</button>
+        </>)}
+
+        {/* Loading for fitness/surfskate */}
+        {(step === 'fload' || step === 'skload') && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '32px 0' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[0,1,2].map(i => <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EAEA97', animation: 'pulse 1.2s ease-in-out infinite', animationDelay: `${i*0.2}s` }} />)}
+            </div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.35)' }}>Coach Vasco is thinking...</div>
+          </div>
+        )}
+
+        {/* Done for fitness/surfskate */}
+        {(step === 'fdone' || step === 'skdone') && (
+          <div style={{ background: 'rgba(234,234,151,0.07)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '20px' }}>
+            <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px' }}>{session.type} · {focus}</div>
+            {note
+              ? <div style={{ fontSize: '14px', color: '#F1F3EC', lineHeight: 1.7 }}>{renderMd(note)}</div>
+              : <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>Session logged. No note this time.</div>}
+            {errorMsg && <div style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '8px' }}>{errorMsg}</div>}
+            <button onClick={onClose} style={{ marginTop: '16px', width: '100%', padding: '12px', background: 'rgba(234,234,151,0.1)', border: '1px solid rgba(234,234,151,0.2)', borderRadius: '10px', color: '#EAEA97', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
+              Done
+            </button>
+          </div>
         )}
 
         {/* S_REVIEW — REVIEW */}
@@ -4930,24 +5118,25 @@ function StarterQuestions({ level, sendMessage, inputRef }) {
     sendMessage(q, true);
   };
   return (
-    <div style={{ marginTop: '24px', width: '100%', maxWidth: '480px' }}>
-      <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '10px', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left' }}>
+    <div style={{ width: '100%', maxWidth: '480px', marginTop: '16px' }}>
+      <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
         Quick start
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+      {/* Horizontal scrollable chip row */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {questions.map((q, i) => (
           <button key={i} onClick={() => handleTap(q)}
-            style={{ width: '100%', padding: '11px 14px', background: 'rgba(234,234,151,0.05)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.75)', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.05)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.75)'; }}>
+            style={{ flexShrink: 0, padding: '9px 14px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', lineHeight: 1.3, transition: 'all 0.18s', touchAction: 'manipulation' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.45)'; e.currentTarget.style.color = '#EAEA97'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
             {q}
           </button>
         ))}
         <button onClick={() => { setTimeout(() => inputRef.current?.focus(), 50); }}
-          style={{ width: '100%', padding: '11px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.4)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s', marginTop: '4px' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.6)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.4)'; }}>
-          Something else — type your own
+          style={{ flexShrink: 0, padding: '9px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.15)', borderRadius: '100px', color: 'rgba(241,243,236,0.3)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.18s', touchAction: 'manipulation' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.55)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.3)'; }}>
+          Something else ✦
         </button>
       </div>
     </div>
