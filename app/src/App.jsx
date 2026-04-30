@@ -1203,7 +1203,7 @@ const STUDY_REGISTRY = [
 
 // ─── TECHNIQUE REGISTRY ───────────────────────────────────────────────────────
 // API endpoint — replaced by build script with proxy URL for local dev
-const COACH_API_URL = '/api/chat';
+const COACH_API_URL = 'https://api.anthropic.com/v1/messages';
 
 // Fetch with timeout helper — prevents modals hanging forever
 async function fetchWithTimeout(url, options, timeoutMs = 12000) {
@@ -4094,6 +4094,17 @@ function ProgrammeView({ programmes, sendMessage, userProfile }) {
 
 // ─── HISTORY SIDEBAR ─────────────────────────────────────────────────────────
 // ─── TODAY'S FOCUS ────────────────────────────────────────────────────────────
+// Renders **bold** markdown inline as <strong> spans
+function renderMd(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? <strong key={i} style={{ color: 'rgba(241,243,236,0.65)', fontStyle: 'normal' }}>{p.slice(2, -2)}</strong>
+      : p
+  );
+}
+
 function TodaysFocus({ userProfile, onStartPreSession }) {
   const sessions = getSessions();
   const focus = getTodaysFocus(userProfile, sessions);
@@ -4114,7 +4125,7 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
         </div>
         {hasLastNote && focus.source === 'session' && (
           <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            "{lastSession.observation.slice(0, 100)}{lastSession.observation.length > 100 ? '...' : ''}"
+            "{renderMd(lastSession.observation.slice(0, 120))}{lastSession.observation.length > 120 ? '...' : ''}"
           </div>
         )}
         <button
@@ -4122,7 +4133,7 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
           style={{ width: '100%', padding: '11px', background: '#EAEA97', border: 'none', borderRadius: '8px', color: '#2A2A29', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.18s', letterSpacing: '0.01em' }}
           onMouseEnter={e => { e.currentTarget.style.background = '#f5f5a0'; }}
           onMouseLeave={e => { e.currentTarget.style.background = '#EAEA97'; }}>
-          Log a session →
+          I'm about to surf →
         </button>
       </div>
     </div>
@@ -4300,26 +4311,21 @@ function getTechniqueChips(sessionType, cstmLevel, intent) {
   const level = cstmLevel || '';
 
   if (sessionType === 'fitness') {
-    // Fitness always anchored to surf technique — which movement are you training for?
-    if (level.includes('Level 3')) {
-      return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Backside Snap'];
+    if (intent === 'training') {
+      return ['Pop-up power', 'Paddle strength', 'Core stability', 'Hip mobility', 'Lower body power', 'Shoulder prehab', 'Session endurance', 'Explosive power'];
     }
-    if (level.includes('Level 2') || level.includes('Level 1–2')) {
-      return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Pumping', 'Backside Pumping', 'Frontside Cutback'];
-    }
-    // Beginner / Level 1 / Pre-Foundation
-    return ['Pop-Up', 'Paddling', 'Stance & Balance', 'Frontside Pumping', 'Backside Pumping', 'Frontside Bottom Turn'];
+    return ['General fitness', 'Mobility', 'Endurance', 'Strength'];
   }
 
   if (sessionType === 'surfskate') {
     if (level.includes('Level 3')) {
-      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Linking Turns', 'Speed Control'];
+      return ['Cutback simulation', 'Snap simulation', 'Linking turns', 'Speed control', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
     }
-    if (level.includes('Level 2') || level.includes('Level 1–2')) {
-      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Linking Turns', 'Speed Control'];
+    if (level.includes('Level 2')) {
+      return ['Frontside bottom turn', 'Backside bottom turn', 'Linking turns', 'Cutback simulation', 'Speed control', 'Frontside carve', 'Backside carve', 'Pumping'];
     }
-    // Level 1 / Pre-Foundation / Beginner
-    return ['Foundation (Stance, Push & Balance)', 'Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn'];
+    // Level 1, 1-2, Pre-Foundation
+    return ['Stance and balance', 'Pumping', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
   }
 
   // Surf — split by intent
@@ -4353,7 +4359,6 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
   const [step, setStep] = useState(0);
   const [sessionType, setSessionType] = useState(null);
   const [intent, setIntent] = useState(null);
-  const [surface, setSurface] = useState(null);
   const [focus, setFocus] = useState('');
   const [customFocus, setCustomFocus] = useState('');
   const [coachTask, setCoachTask] = useState('');
@@ -4413,7 +4418,7 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
           ? [`Coach: ${coachTask.trim()}`, ...registry.cues.slice(0, 2)]
           : registry.cues;
         const cueText = points.map(p => `• ${p}`).join('\n');
-        const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, registryCues: registry.cues, surface: surface || null, preTime: Date.now() };
+        const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, registryCues: registry.cues, preTime: Date.now() };
         const sessions = getSessions();
         saveSessions([...sessions, newSession]);
         updateSurfScore(userProfile, newSession);
@@ -4426,19 +4431,11 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
 
     // ── Fallback: AI for custom focus or non-registry techniques ───────────────
     const coachCtx = coachTask.trim() ? ` Coach task: "${coachTask.trim()}".` : '';
-    let intentCtx;
-    if (sessionType === 'surf') {
-      intentCtx = intent === 'training'
-        ? `Training session on "${finalFocus}".${coachCtx} Give 2-3 short technique focus points as bullet points. Each point max 8 words. No intro text.`
-        : `Free surf, awareness on "${finalFocus}". Give 1-2 short cues as bullet points. Max 7 words each. No intro.`;
-    } else if (sessionType === 'surfskate') {
-      const surfaceCtx = surface === 'ramp' ? 'Ramps & Bowl session (gravity-loaded, high surf transfer)' : 'Flat ground session (pump mechanics focus)';
-      intentCtx = `Surfskate session. ${surfaceCtx}. Technique focus: "${finalFocus}". Give 3 surfskate-specific cues. Use concrete/board language — body position on board, pump timing, compression and extension. No wave or ocean references. Max 8 words each. Bullet points only.`;
-    } else if (sessionType === 'fitness') {
-      intentCtx = `Surf fitness session targeting the physical demands of "${finalFocus}". Give 3 surf-specific exercises with sets and reps. Each exercise must directly train the muscle groups and movement patterns used in ${finalFocus} surfing. No generic gym advice. Bullet points only. Max 10 words each.`;
-    } else {
-      intentCtx = `Session on "${finalFocus}". Give 2-3 focus points as bullet points. Max 8 words each. No intro.`;
-    }
+    const intentCtx = sessionType === 'surf'
+      ? (intent === 'training'
+          ? `Training session on "${finalFocus}".${coachCtx} Give 2-3 short technique focus points as bullet points. Each point max 8 words. No intro text.`
+          : `Free surf, awareness on "${finalFocus}". Give 1-2 short cues as bullet points. Max 7 words each. No intro.`)
+      : `${sessionType} session on "${finalFocus}". Give 2-3 short technique focus points as bullet points. Max 8 words each. No intro.`;
     const sys = `You are Coach Vasco. ${intentCtx} Format: bullet points starting with •. No preamble, no full sentences, just the key points. ${cstmLevel} level surfer.`;
     try {
       const res = await fetchWithTimeout(COACH_API_URL, {
@@ -4449,7 +4446,7 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
       const data = await res.json();
       const cueText = data.content?.[0]?.text || `• Focus on ${finalFocus}\n• One thing at a time`;
       setCue(cueText);
-      const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, surface: surface || null, preTime: Date.now() };
+      const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, preTime: Date.now() };
       const sessions = getSessions();
       saveSessions([...sessions, newSession]);
       updateSurfScore(userProfile, newSession);
@@ -4479,13 +4476,9 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
             <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>What kind of session?</div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            {[
-              { label: 'Surf',      next: 1    },
-              { label: 'Surfskate', next: 'sk' },
-              { label: 'Fitness',   next: 2    },
-            ].map(({ label, next }) => (
+            {['Surf', 'Surfskate', 'Fitness'].map(label => (
               <button key={label}
-                onClick={() => { setSessionType(label.toLowerCase()); setSurface(null); setStep(next); }}
+                onClick={() => { setSessionType(label.toLowerCase()); setStep(label === 'Surf' ? 1 : 2); }}
                 style={{ flex: 1, padding: '18px 8px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.6)', fontSize: '12px', fontWeight: '500', letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.6)'; }}>
@@ -4518,34 +4511,10 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
           </div>
         </>)}
 
-        {/* SURFSKATE — flat vs ramp */}
-        {step === 'sk' && (<>
-          <div>
-            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Where are you skating?</div>
-            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>This affects how we weight the session</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button onClick={() => { setSurface('flat'); setStep(2); }}
-              style={{ padding: '16px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>Flat ground</div>
-              <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)' }}>Street, car park, skate plaza. Good for pump mechanics and weight transfer.</div>
-            </button>
-            <button onClick={() => { setSurface('ramp'); setStep(2); }}
-              style={{ padding: '16px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>Ramps & Bowl</div>
-              <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)' }}>Gravity-loaded. Closest thing to a real wave. Higher transfer to surf.</div>
-            </button>
-          </div>
-        </>)}
-
         {step === 2 && (<>
           <div>
             <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>
-              {sessionType === 'surf' && intent === 'training' ? 'What are you working on?' : sessionType === 'fitness' ? 'Which surf technique are you training?' : "What's your focus?"}
+              {sessionType === 'surf' && intent === 'training' ? 'What are you working on?' : "What's your focus?"}
             </div>
             <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>
               {sessionType === 'surf' && intent === 'training'
@@ -4684,15 +4653,9 @@ function PostSessionModal({ session, userProfile, onClose }) {
     // Save first — data is never lost
     persistSession('');
 
-    const isSurfskate = session.type === 'surfskate';
-    const isFitness = session.type === 'fitness';
     const sys = [
       'You are Coach Vasco.',
-      isSurfskate
-        ? `Surfskate post-session. Surface: ${session.surface === 'ramp' ? 'Ramps & Bowl' : 'Flat ground'}. Technique: "${focus}". Use concrete/board movement language. Connect back to surf movement. No wave or ocean metaphors.`
-        : isFitness
-        ? `Surf fitness post-session. Technique trained: "${focus}". Connect gym work directly to surf performance. Be specific about which movement or muscle was targeted.`
-        : `Surf session. Technique: "${focus}".`,
+      `Session: ${session.type}. Technique: "${focus}".`,
       coachTask ? `Coach task: "${coachTask}". Close this loop first.` : '',
       session.registryCues?.length
         ? `Pre-session cues: ${session.registryCues.join('; ')}.`
@@ -4704,15 +4667,11 @@ function PostSessionModal({ session, userProfile, onClose }) {
       isWoman
         ? 'Tone: acknowledge effort, connect to progress, one achievable carry-forward.'
         : 'Tone: direct, technical, what worked, what to fix, one next action.',
-      isSurf
-        ? 'Rules: max 3 sentences. Only reference what was reported. No video/filming mentions. End with one specific named drill with reps/sets.'
-        : isSurfskate
-        ? 'Rules: max 3 sentences. Connect board movement to surf movement. End with one concrete surfskate drill for next session.'
-        : 'Rules: max 3 sentences. Connect gym work to surf performance. End with one exercise adjustment or progression for next session.',
+      'Rules: max 3 sentences. Only reference what was reported. No video/filming mentions. End with one specific named drill with reps/sets.',
     ].filter(Boolean).join(' ');
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4724,6 +4683,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
       });
 
       const data = await res.json();
+      console.log('[PSM] API response:', JSON.stringify(data).slice(0, 300));
 
       if (data.error) {
         setErrorMsg(`API error: ${data.error.message}`);
