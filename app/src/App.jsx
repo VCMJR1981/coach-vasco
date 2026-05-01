@@ -2408,6 +2408,7 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
+        coaching: `Work on ${focus} again — repetition is how it sticks.`,
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2431,6 +2432,7 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
+      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
       source: 'pattern',
     };
   }
@@ -2455,6 +2457,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
+    coaching: `This is where your progression starts. Own it.`,
     source: 'assessment',
   };
 }
@@ -4121,7 +4124,10 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginBottom: '2px' }}>{focus.reason}</div>
+          {focus.coaching && (
+            <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.5)', lineHeight: 1.5, marginTop: '4px' }}>{focus.coaching}</div>
+          )}
         </div>
         {hasLastNote && focus.source === 'session' && (
           <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -4930,24 +4936,24 @@ function StarterQuestions({ level, sendMessage, inputRef }) {
     sendMessage(q, true);
   };
   return (
-    <div style={{ marginTop: '24px', width: '100%', maxWidth: '480px' }}>
-      <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '10px', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left' }}>
+    <div style={{ width: '100%', maxWidth: '480px', marginTop: '16px' }}>
+      <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
         Quick start
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {questions.map((q, i) => (
           <button key={i} onClick={() => handleTap(q)}
-            style={{ width: '100%', padding: '11px 14px', background: 'rgba(234,234,151,0.05)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.75)', fontSize: '13px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.05)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.75)'; }}>
+            style={{ flexShrink: 0, padding: '9px 14px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', lineHeight: 1.3, transition: 'all 0.18s', touchAction: 'manipulation' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.45)'; e.currentTarget.style.color = '#EAEA97'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
             {q}
           </button>
         ))}
         <button onClick={() => { setTimeout(() => inputRef.current?.focus(), 50); }}
-          style={{ width: '100%', padding: '11px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.18)', borderRadius: '10px', color: 'rgba(241,243,236,0.4)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", textAlign: 'left', lineHeight: 1.4, transition: 'all 0.18s', marginTop: '4px' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.6)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.4)'; }}>
-          Something else — type your own
+          style={{ flexShrink: 0, padding: '9px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.15)', borderRadius: '100px', color: 'rgba(241,243,236,0.3)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.18s', touchAction: 'manipulation' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.55)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.3)'; }}>
+          Something else ✦
         </button>
       </div>
     </div>
@@ -5757,13 +5763,17 @@ export default function SurfCoachAgent() {
     })();
   }, []);
 
-  // Check for unreviewed post-session on mount and tab focus
+  // Check for unreviewed post-session — banner shows on mount, modal only on visibility change
   useEffect(() => {
+    // On mount: just set the banner (don't auto-open modal)
+    const unreviewed = getLatestUnreviewedSession();
+    setPendingPostSession(unreviewed || null);
+
+    // On tab focus: also just update banner — user taps the banner to open modal
     const check = () => {
       const unreviewed = getLatestUnreviewedSession();
       setPendingPostSession(unreviewed || null);
     };
-    check();
     document.addEventListener('visibilitychange', check);
     return () => document.removeEventListener('visibilitychange', check);
   }, []);
