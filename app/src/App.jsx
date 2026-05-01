@@ -2408,7 +2408,6 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
-        coaching: `Work on ${focus} again — repetition is how it sticks.`,
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2432,7 +2431,6 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
-      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
       source: 'pattern',
     };
   }
@@ -2457,7 +2455,6 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
-    coaching: `This is where your progression starts. Own it.`,
     source: 'assessment',
   };
 }
@@ -4124,10 +4121,7 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginBottom: '2px' }}>{focus.reason}</div>
-          {focus.coaching && (
-            <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.5)', lineHeight: 1.5, marginTop: '4px' }}>{focus.coaching}</div>
-          )}
+          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
         </div>
         {hasLastNote && focus.source === 'session' && (
           <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -4931,30 +4925,40 @@ function HistorySidebar({ history, currentId, onLoad, onNew, onDelete, onClose }
 // ─── Starter Questions component ─────────────────────────────────────────────
 function StarterQuestions({ level, sendMessage, inputRef }) {
   const questions = getStarterQuestions(level);
+  const scrollRef = React.useRef(null);
   const handleTap = (q) => {
     recordStarterTapped(q);
     sendMessage(q, true);
+  };
+  const scroll = (dir) => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: dir * 160, behavior: 'smooth' });
   };
   return (
     <div style={{ width: '100%', maxWidth: '480px', marginTop: '16px' }}>
       <div style={{ fontSize: '10px', color: 'rgba(241,243,236,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}>
         Quick start
       </div>
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {questions.map((q, i) => (
-          <button key={i} onClick={() => handleTap(q)}
-            style={{ flexShrink: 0, padding: '9px 14px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', lineHeight: 1.3, transition: 'all 0.18s', touchAction: 'manipulation' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.45)'; e.currentTarget.style.color = '#EAEA97'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
-            {q}
+      <div style={{ position: 'relative' }}>
+        <button onClick={() => scroll(-1)}
+          style={{ position: 'absolute', left: '-12px', top: '50%', transform: 'translateY(-50%)', zIndex: 2, background: 'rgba(42,42,41,0.92)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', color: 'rgba(241,243,236,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: 0, lineHeight: 1 }}>‹</button>
+        <button onClick={() => scroll(1)}
+          style={{ position: 'absolute', right: '-12px', top: '50%', transform: 'translateY(-50%)', zIndex: 2, background: 'rgba(42,42,41,0.92)', border: '1px solid rgba(234,234,151,0.22)', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', color: 'rgba(241,243,236,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: 0, lineHeight: 1 }}>›</button>
+        <div ref={scrollRef} style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', paddingLeft: '2px', paddingRight: '2px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {questions.map((q, i) => (
+            <button key={i} onClick={() => handleTap(q)}
+              style={{ flexShrink: 0, padding: '9px 14px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '100px', color: 'rgba(241,243,236,0.7)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', lineHeight: 1.3, transition: 'all 0.18s', touchAction: 'manipulation' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.14)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.45)'; e.currentTarget.style.color = '#EAEA97'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.18)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}>
+              {q}
+            </button>
+          ))}
+          <button onClick={() => { setTimeout(() => inputRef.current?.focus(), 50); }}
+            style={{ flexShrink: 0, padding: '9px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.15)', borderRadius: '100px', color: 'rgba(241,243,236,0.3)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.18s', touchAction: 'manipulation' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.55)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.3)'; }}>
+            Something else ✦
           </button>
-        ))}
-        <button onClick={() => { setTimeout(() => inputRef.current?.focus(), 50); }}
-          style={{ flexShrink: 0, padding: '9px 14px', background: 'transparent', border: '1px dashed rgba(234,234,151,0.15)', borderRadius: '100px', color: 'rgba(241,243,236,0.3)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", whiteSpace: 'nowrap', transition: 'all 0.18s', touchAction: 'manipulation' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.35)'; e.currentTarget.style.color = 'rgba(241,243,236,0.55)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.3)'; }}>
-          Something else ✦
-        </button>
+        </div>
       </div>
     </div>
   );
@@ -4970,10 +4974,21 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      alert('File too large. Maximum size is 10MB.');
+      return;
+    }
+    const allowed = ['pdf','xlsx','xls','docx','doc'];
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!allowed.includes(ext)) {
+      alert('Unsupported file type. Please use PDF, Excel (.xlsx), or Word (.docx).');
+      return;
+    }
     try {
       const extracted = await extractFileContent(file);
       if (extracted) onAttachFile(extracted);
-      else alert('Unsupported file type. Please use PDF, Excel (.xlsx), or Word (.docx).');
+      else alert('Could not extract content from this file.');
     } catch (err) {
       alert('Could not read file: ' + err.message);
     }
@@ -5763,17 +5778,13 @@ export default function SurfCoachAgent() {
     })();
   }, []);
 
-  // Check for unreviewed post-session — banner shows on mount, modal only on visibility change
+  // Check for unreviewed post-session on mount and tab focus
   useEffect(() => {
-    // On mount: just set the banner (don't auto-open modal)
-    const unreviewed = getLatestUnreviewedSession();
-    setPendingPostSession(unreviewed || null);
-
-    // On tab focus: also just update banner — user taps the banner to open modal
     const check = () => {
       const unreviewed = getLatestUnreviewedSession();
       setPendingPostSession(unreviewed || null);
     };
+    check();
     document.addEventListener('visibilitychange', check);
     return () => document.removeEventListener('visibilitychange', check);
   }, []);
@@ -5912,8 +5923,15 @@ Rules:
     return wordCount < 4;
   };
 
+  const lastSendRef = React.useRef(0);
   const sendMessage = async (text, skipClarify = false) => {
-    const userText = text || input.trim();
+    const rawText = text || input.trim();
+    // Rate limit: 1 message per 2 seconds
+    const now = Date.now();
+    if (now - lastSendRef.current < 2000 && !skipClarify) return;
+    lastSendRef.current = now;
+    // Sanitize: strip script tags, null bytes, cap length
+    const userText = rawText.replace(/<script[^>]*?>.*?<\/script>/gi, '').replace(/ /g, '').slice(0, 4000);
     if ((!userText && !attachedFile) || loading) return;
     setInput('');
     setStarted(true);
