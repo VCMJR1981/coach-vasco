@@ -4362,6 +4362,7 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
   const [step, setStep] = useState(0);
   const [sessionType, setSessionType] = useState(null);
   const [intent, setIntent] = useState(null);
+  const [surface, setSurface] = useState(null);
   const [focus, setFocus] = useState('');
   const [customFocus, setCustomFocus] = useState('');
   const [coachTask, setCoachTask] = useState('');
@@ -4421,7 +4422,7 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
           ? [`Coach: ${coachTask.trim()}`, ...registry.cues.slice(0, 2)]
           : registry.cues;
         const cueText = points.map(p => `• ${p}`).join('\n');
-        const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, registryCues: registry.cues, preTime: Date.now() };
+        const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, registryCues: registry.cues, surface: surface || null, preTime: Date.now() };
         const sessions = getSessions();
         saveSessions([...sessions, newSession]);
         updateSurfScore(userProfile, newSession);
@@ -4449,7 +4450,7 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
       const data = await res.json();
       const cueText = data.content?.[0]?.text || `• Focus on ${finalFocus}\n• One thing at a time`;
       setCue(cueText);
-      const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, preTime: Date.now() };
+      const newSession = { id: Date.now(), type: sessionType, intent: intent || 'free', focus: finalFocus, coachTask: coachTask.trim() || null, cue: cueText, surface: surface || null, preTime: Date.now() };
       const sessions = getSessions();
       saveSessions([...sessions, newSession]);
       updateSurfScore(userProfile, newSession);
@@ -4482,9 +4483,13 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
             <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>What kind of session?</div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            {['Surf', 'Surfskate', 'Fitness'].map(label => (
+            {[
+              { label: 'Surf',      next: 1    },
+              { label: 'Surfskate', next: 'sk' },
+              { label: 'Fitness',   next: 2    },
+            ].map(({ label, next }) => (
               <button key={label}
-                onClick={() => { setSessionType(label.toLowerCase()); setStep(label === 'Surf' ? 1 : 2); }}
+                onClick={() => { setSessionType(label.toLowerCase()); setSurface(null); setStep(next); }}
                 style={{ flex: 1, padding: '18px 8px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', color: 'rgba(241,243,236,0.6)', fontSize: '12px', fontWeight: '500', letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; e.currentTarget.style.color = '#EAEA97'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; e.currentTarget.style.color = 'rgba(241,243,236,0.6)'; }}>
@@ -4513,6 +4518,30 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; }}>
               <div style={{ fontSize: '14px', fontWeight: '600', color: 'rgba(241,243,236,0.7)', marginBottom: '3px' }}>Free surf</div>
               <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)' }}>Just surfing. One area to keep in mind.</div>
+            </button>
+          </div>
+        </>)}
+
+        {/* SURFSKATE — flat vs ramp */}
+        {step === 'sk' && (<>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '600', color: '#F1F3EC', marginBottom: '4px' }}>Where are you skating?</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.4)' }}>This affects how your session is weighted</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button onClick={() => { setSurface('flat'); setStep(2); }}
+              style={{ padding: '16px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>Flat ground</div>
+              <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)' }}>Street, car park, skate plaza. Pump mechanics and weight transfer.</div>
+            </button>
+            <button onClick={() => { setSurface('ramp'); setStep(2); }}
+              style={{ padding: '16px 18px', background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.15)', borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s', fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.12)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(234,234,151,0.06)'; e.currentTarget.style.borderColor = 'rgba(234,234,151,0.15)'; }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>Ramps & Bowl</div>
+              <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)' }}>Gravity-loaded. Closest thing to a real wave. Higher surf transfer.</div>
             </button>
           </div>
         </>)}
@@ -4629,26 +4658,38 @@ function VoiceInput({ onResult, disabled }) {
     if (!SR) return;
 
     if (listening) {
-      recognitionRef.current?.stop();
+      try { recognitionRef.current?.stop(); } catch {}
       setListening(false);
       return;
     }
 
-    const recognition = new SR();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    try {
+      const recognition = new SR();
+      recognition.lang = navigator.language || 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.continuous = false;
 
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      onResult(transcript);
-    };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+      recognition.onresult = (e) => {
+        const transcript = Array.from(e.results)
+          .map(r => r[0].transcript)
+          .join(' ');
+        onResult(transcript);
+        setListening(false);
+      };
+      recognition.onerror = (e) => {
+        console.warn('Voice error:', e.error);
+        setListening(false);
+      };
+      recognition.onend = () => setListening(false);
 
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+      recognitionRef.current = recognition;
+      recognition.start();
+      setListening(true);
+    } catch (err) {
+      console.warn('Voice start failed:', err);
+      setListening(false);
+    }
   };
 
   if (!supported || disabled) return null;
@@ -4878,7 +4919,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
                 <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)', marginBottom: '6px' }}>Anything else? <span style={{ color: 'rgba(241,243,236,0.2)' }}>(optional)</span></div>
                 <div style={{ position: 'relative' }}>
                   <textarea rows={2} value={otherNotes} onChange={e => setOtherNotes(e.target.value)}
-                    placeholder="Conditions, body, mindset..."
+                    placeholder="What else should I know..."
                     style={{ ...ta(false), paddingRight: '44px' }} />
                   <VoiceInput onResult={(t) => setOtherNotes(prev => prev ? prev + ' ' + t : t)} />
                 </div>
@@ -4920,7 +4961,7 @@ function PostSessionModal({ session, userProfile, onClose }) {
               {note ? (
                 <>
                   <div style={{ fontSize: '10px', color: '#EAEA97', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '10px', fontWeight: '600' }}>Coaching note</div>
-                  <div style={{ fontSize: '15px', color: '#F1F3EC', lineHeight: 1.65 }}>{note}</div>
+                  <div style={{ fontSize: '15px', color: '#F1F3EC', lineHeight: 1.65 }}>{renderMd(note)}</div>
                 </>
               ) : (
                 <>
