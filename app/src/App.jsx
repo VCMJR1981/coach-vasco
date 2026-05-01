@@ -2408,6 +2408,7 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
+        coaching: `Work on ${focus} again — repetition is how it sticks.`,
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2431,6 +2432,7 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
+      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
       source: 'pattern',
     };
   }
@@ -2455,6 +2457,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
+    coaching: `This is where your progression starts. Own it.`,
     source: 'assessment',
   };
 }
@@ -4121,7 +4124,10 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)' }}>{focus.reason}</div>
+          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginBottom: '2px' }}>{focus.reason}</div>
+          {focus.coaching && (
+            <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.5)', lineHeight: 1.5, marginTop: '4px' }}>{focus.coaching}</div>
+          )}
         </div>
         {hasLastNote && focus.source === 'session' && (
           <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -4468,7 +4474,10 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
   return (
     <div style={overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={sheet}>
-        <div style={{ width: '36px', height: '4px', background: 'rgba(241,243,236,0.12)', borderRadius: '2px', alignSelf: 'center' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ width: '36px', height: '4px', background: 'rgba(241,243,236,0.12)', borderRadius: '2px', marginLeft: 'auto', marginRight: 'auto' }} />
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.35)', fontSize: '22px', cursor: 'pointer', lineHeight: 1, padding: '0 2px', marginLeft: '8px', flexShrink: 0 }}>×</button>
+        </div>
 
         {step === 0 && (<>
           <div>
@@ -4974,17 +4983,9 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    if (file.size > MAX_FILE_SIZE) {
-      alert('File too large. Maximum size is 10MB.');
-      return;
-    }
-    const allowed = ['pdf','xlsx','xls','docx','doc'];
+    if (file.size > 10 * 1024 * 1024) { alert('File too large. Maximum size is 10MB.'); return; }
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!allowed.includes(ext)) {
-      alert('Unsupported file type. Please use PDF, Excel (.xlsx), or Word (.docx).');
-      return;
-    }
+    if (!['pdf','xlsx','xls','docx','doc'].includes(ext)) { alert('Unsupported file type. Please use PDF, Excel (.xlsx), or Word (.docx).'); return; }
     try {
       const extracted = await extractFileContent(file);
       if (extracted) onAttachFile(extracted);
@@ -5012,8 +5013,7 @@ function ChatTab({ messages, input, setInput, loading, loadingStatus, started, s
                     <p style={{ fontSize: '11px', color: 'rgba(241,243,236,0.3)', margin: 0, fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>{userProfile.surfLabel} · What are we working on today?</p>
                   </div>
                 </div>
-                <button onClick={() => setTab('quiz')} style={{ background: 'none', border: 'none', color: 'rgba(234,234,151,0.25)', fontSize: '11px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", padding: '4px', marginTop: '8px' }}>Retake assessment</button>
-                <button onClick={signOut} style={{ background: 'none', border: 'none', color: 'rgba(241,243,236,0.15)', fontSize: '11px', cursor: 'pointer', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", padding: '4px' }}>Sign out</button>
+
 
                 {/* Today's Focus — feedback loop entry point */}
                 {!pendingPostSession && (
@@ -5925,13 +5925,11 @@ Rules:
 
   const lastSendRef = React.useRef(0);
   const sendMessage = async (text, skipClarify = false) => {
-    const rawText = text || input.trim();
-    // Rate limit: 1 message per 2 seconds
     const now = Date.now();
     if (now - lastSendRef.current < 2000 && !skipClarify) return;
     lastSendRef.current = now;
-    // Sanitize: strip script tags, null bytes, cap length
-    const userText = rawText.replace(/<script[^>]*?>.*?<\/script>/gi, '').replace(/ /g, '').slice(0, 4000);
+    const rawText = text || input.trim();
+    const userText = rawText.split('<script').join('').split('</script>').join('').replace(/ /g, '').slice(0, 4000);
     if ((!userText && !attachedFile) || loading) return;
     setInput('');
     setStarted(true);
@@ -6289,6 +6287,14 @@ Rules:
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.2)'; e.currentTarget.style.color = 'rgba(241,243,236,0.5)'; }}>
             + New
           </button>
+          {authUser && (
+            <button onClick={signOut} title="Sign out"
+              style={{ background: 'none', border: '1px solid rgba(241,243,236,0.1)', borderRadius: '8px', color: 'rgba(241,243,236,0.3)', cursor: 'pointer', padding: '5px 10px', fontSize: '11px', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(241,243,236,0.3)'; e.currentTarget.style.color = 'rgba(241,243,236,0.7)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(241,243,236,0.1)'; e.currentTarget.style.color = 'rgba(241,243,236,0.3)'; }}>
+              Sign out
+            </button>
+          )}
         </div>
       </div>
 
