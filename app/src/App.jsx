@@ -2408,7 +2408,15 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
-        coaching: `Work on ${focus} again — repetition is how it sticks.`,
+        coaching: (() => {
+          const sessionCount = completed.filter(s => s.focus === focus).length;
+          const lastRating = lastSession.rating;
+          if (sessionCount >= 3 && lastRating >= 4) return `${sessionCount} sessions on ${focus}. That consistency is what separates surfers who improve from those who don't.`;
+          if (sessionCount >= 3) return `${sessionCount} sessions on ${focus}. The movement is building — trust the process.`;
+          if (lastRating >= 4) return `Good session. Keep that momentum on ${focus} — this is how it gets automatic.`;
+          if (lastRating && lastRating <= 2) return `${focus} was tough. That's where the real work happens. Show up again.`;
+          return `Back on ${focus}. One more session adds to the pattern.`;
+        })(),
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2432,7 +2440,12 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
-      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
+      coaching: (() => {
+          const count = struggling[1].count;
+          const avg = (struggling[1].ratings.reduce((a, b) => a + b, 0) / (struggling[1].ratings.length || 1)).toFixed(1);
+          if (Number(avg) <= 2) return `${count} sessions, average rating ${avg}. This is the hard part. This is where surfers split into two groups. Keep going.`;
+          return `You keep coming back to ${struggling[0]}. That's not failure, that's how you break through a plateau.`;
+        })(),
       source: 'pattern',
     };
   }
@@ -2457,7 +2470,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
-    coaching: `This is where your progression starts. Own it.`,
+    coaching: null,
     source: 'assessment',
   };
 }
@@ -4317,21 +4330,24 @@ function getTechniqueChips(sessionType, cstmLevel, intent) {
   const level = cstmLevel || '';
 
   if (sessionType === 'fitness') {
-    if (intent === 'training') {
-      return ['Pop-up power', 'Paddle strength', 'Core stability', 'Hip mobility', 'Lower body power', 'Shoulder prehab', 'Session endurance', 'Explosive power'];
+    // Always anchored to surf technique — which movement are you training for?
+    if (level.includes('Level 3')) {
+      return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Backside Snap'];
     }
-    return ['General fitness', 'Mobility', 'Endurance', 'Strength'];
+    if (level.includes('Level 2') || level.includes('Level 1–2')) {
+      return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Pumping', 'Backside Pumping', 'Frontside Cutback'];
+    }
+    return ['Pop-Up', 'Paddling', 'Stance & Balance', 'Frontside Pumping', 'Backside Pumping', 'Frontside Bottom Turn'];
   }
 
   if (sessionType === 'surfskate') {
     if (level.includes('Level 3')) {
-      return ['Cutback simulation', 'Snap simulation', 'Linking turns', 'Speed control', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
+      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Linking Turns', 'Speed Control'];
     }
-    if (level.includes('Level 2')) {
-      return ['Frontside bottom turn', 'Backside bottom turn', 'Linking turns', 'Cutback simulation', 'Speed control', 'Frontside carve', 'Backside carve', 'Pumping'];
+    if (level.includes('Level 2') || level.includes('Level 1–2')) {
+      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Linking Turns', 'Speed Control'];
     }
-    // Level 1, 1-2, Pre-Foundation
-    return ['Stance and balance', 'Pumping', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
+    return ['Foundation (Stance, Push & Balance)', 'Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn'];
   }
 
   // Surf — split by intent
