@@ -4610,6 +4610,62 @@ function PreSessionModal({ userProfile, preSelectedFocus, onClose }) {
 }
 
 // ─── POST-SESSION MODAL ───────────────────────────────────────────────────────
+// ─── VOICE INPUT ─────────────────────────────────────────────────────────────
+// Self-contained voice-to-text component. Reusable anywhere in the app.
+// Currently used in post-session note fields.
+// To use in main chat: <VoiceInput onResult={(text) => setInput(prev => prev + text)} />
+function VoiceInput({ onResult, disabled }) {
+  const [listening, setListening] = useState(false);
+  const [supported, setSupported] = useState(false);
+  const recognitionRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) setSupported(true);
+  }, []);
+
+  const toggle = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      onResult(transcript);
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  if (!supported || disabled) return null;
+
+  return (
+    <button onClick={toggle} title={listening ? 'Stop recording' : 'Speak your note'}
+      style={{ position: 'absolute', right: '10px', bottom: '10px', background: listening ? 'rgba(234,234,151,0.2)' : 'rgba(255,255,255,0.05)', border: `1px solid ${listening ? 'rgba(234,234,151,0.5)' : 'rgba(234,234,151,0.15)'}`, borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', zIndex: 1 }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={listening ? '#EAEA97' : 'rgba(241,243,236,0.5)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {listening
+          ? <><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></>
+          : <><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>
+        }
+      </svg>
+    </button>
+  );
+}
+
 function PostSessionModal({ session, userProfile, onClose }) {
   // ── state ──────────────────────────────────────────────────────────────────
   const [step, setStep] = useState(0);
@@ -4811,15 +4867,21 @@ function PostSessionModal({ session, userProfile, onClose }) {
                     ? <>Coach task: <span style={{ fontWeight: '400', color: 'rgba(234,234,151,0.4)' }}>{coachTask}</span></>
                     : <>How did the <span style={{ color: '#EAEA97' }}>{focus.toLowerCase()}</span> work?</>}
                 </div>
-                <textarea rows={2} value={focusWorked} onChange={e => setFocusWorked(e.target.value)}
-                  placeholder={coachTask ? 'Did you execute it? What happened?' : `You focused on ${focus.toLowerCase()} — what happened?`}
-                  style={ta(!!coachTask)} />
+                <div style={{ position: 'relative' }}>
+                  <textarea rows={2} value={focusWorked} onChange={e => setFocusWorked(e.target.value)}
+                    placeholder={coachTask ? 'Did you execute it? What happened?' : `You focused on ${focus.toLowerCase()} — what happened?`}
+                    style={{ ...ta(!!coachTask), paddingRight: '44px' }} />
+                  <VoiceInput onResult={(t) => setFocusWorked(prev => prev ? prev + ' ' + t : t)} />
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.4)', marginBottom: '6px' }}>Anything else? <span style={{ color: 'rgba(241,243,236,0.2)' }}>(optional)</span></div>
-                <textarea rows={2} value={otherNotes} onChange={e => setOtherNotes(e.target.value)}
-                  placeholder="Conditions, body, mindset..."
-                  style={ta(false)} />
+                <div style={{ position: 'relative' }}>
+                  <textarea rows={2} value={otherNotes} onChange={e => setOtherNotes(e.target.value)}
+                    placeholder="Conditions, body, mindset..."
+                    style={{ ...ta(false), paddingRight: '44px' }} />
+                  <VoiceInput onResult={(t) => setOtherNotes(prev => prev ? prev + ' ' + t : t)} />
+                </div>
               </div>
             </div>
             <button onClick={getNote} disabled={!focusWorked.trim()} style={btn(focusWorked.trim(), true)}>
