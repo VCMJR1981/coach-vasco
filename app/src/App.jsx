@@ -2408,15 +2408,7 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
-        coaching: (() => {
-          const sessionCount = completed.filter(s => s.focus === focus).length;
-          const lastRating = lastSession.rating;
-          if (sessionCount >= 3 && lastRating >= 4) return `${sessionCount} sessions on ${focus}. That consistency is what separates surfers who improve from those who don't.`;
-          if (sessionCount >= 3) return `${sessionCount} sessions on ${focus}. The movement is building — trust the process.`;
-          if (lastRating >= 4) return `Good session. Keep that momentum on ${focus} — this is how it gets automatic.`;
-          if (lastRating && lastRating <= 2) return `${focus} was tough. That's where the real work happens. Show up again.`;
-          return `Back on ${focus}. One more session adds to the pattern.`;
-        })(),
+        coaching: `Work on ${focus} again — repetition is how it sticks.`,
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2440,12 +2432,7 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
-      coaching: (() => {
-          const count = struggling[1].count;
-          const avg = (struggling[1].ratings.reduce((a, b) => a + b, 0) / (struggling[1].ratings.length || 1)).toFixed(1);
-          if (Number(avg) <= 2) return `${count} sessions, average rating ${avg}. This is the hard part. This is where surfers split into two groups. Keep going.`;
-          return `You keep coming back to ${struggling[0]}. That's not failure, that's how you break through a plateau.`;
-        })(),
+      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
       source: 'pattern',
     };
   }
@@ -2470,7 +2457,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
-    coaching: null,
+    coaching: `This is where your progression starts. Own it.`,
     source: 'assessment',
   };
 }
@@ -4136,17 +4123,11 @@ function TodaysFocus({ userProfile, onStartPreSession }) {
       </div>
       <div style={{ background: 'rgba(234,234,151,0.06)', border: '1px solid rgba(234,234,151,0.18)', borderRadius: '14px', padding: '14px 16px', textAlign: 'left' }}>
         <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '3px' }}>{focus.technique}</div>
-          <div style={{ fontSize: '11px', color: 'rgba(241,243,236,0.35)', marginBottom: '2px' }}>{focus.reason}</div>
+          <div style={{ fontSize: '15px', fontWeight: '600', color: '#EAEA97', marginBottom: '6px' }}>{focus.technique}</div>
           {focus.coaching && (
-            <div style={{ fontSize: '12px', color: 'rgba(241,243,236,0.5)', lineHeight: 1.5, marginTop: '4px' }}>{focus.coaching}</div>
+            <div style={{ fontSize: '13px', color: 'rgba(241,243,236,0.55)', lineHeight: 1.6 }}>{focus.coaching}</div>
           )}
         </div>
-        {hasLastNote && focus.source === 'session' && (
-          <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(241,243,236,0.06)', fontSize: '12px', color: 'rgba(241,243,236,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>
-            "{renderMd(lastSession.observation.slice(0, 120))}{lastSession.observation.length > 120 ? '...' : ''}"
-          </div>
-        )}
         <button
           onClick={() => onStartPreSession(focus.technique)}
           style={{ width: '100%', padding: '11px', background: '#EAEA97', border: 'none', borderRadius: '8px', color: '#2A2A29', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: "'Inter','Helvetica Neue',sans-serif", transition: 'all 0.18s', letterSpacing: '0.01em' }}
@@ -4330,11 +4311,10 @@ function getTechniqueChips(sessionType, cstmLevel, intent) {
   const level = cstmLevel || '';
 
   if (sessionType === 'fitness') {
-    // Always anchored to surf technique — which movement are you training for?
     if (level.includes('Level 3')) {
       return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Backside Snap'];
     }
-    if (level.includes('Level 2') || level.includes('Level 1–2')) {
+    if (level.includes('Level 2') || level.includes('Level 1\u20132')) {
       return ['Pop-Up', 'Paddling', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Pumping', 'Backside Pumping', 'Frontside Cutback'];
     }
     return ['Pop-Up', 'Paddling', 'Stance & Balance', 'Frontside Pumping', 'Backside Pumping', 'Frontside Bottom Turn'];
@@ -4342,12 +4322,13 @@ function getTechniqueChips(sessionType, cstmLevel, intent) {
 
   if (sessionType === 'surfskate') {
     if (level.includes('Level 3')) {
-      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Backside Cutback', 'Frontside Snap', 'Linking Turns', 'Speed Control'];
+      return ['Cutback simulation', 'Snap simulation', 'Linking turns', 'Speed control', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
     }
-    if (level.includes('Level 2') || level.includes('Level 1–2')) {
-      return ['Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn', 'Frontside Cutback', 'Linking Turns', 'Speed Control'];
+    if (level.includes('Level 2')) {
+      return ['Frontside bottom turn', 'Backside bottom turn', 'Linking turns', 'Cutback simulation', 'Speed control', 'Frontside carve', 'Backside carve', 'Pumping'];
     }
-    return ['Foundation (Stance, Push & Balance)', 'Pumping', 'Frontside Bottom Turn', 'Backside Bottom Turn'];
+    // Level 1, 1-2, Pre-Foundation
+    return ['Stance and balance', 'Pumping', 'Frontside carve', 'Backside carve', 'Frontside bottom turn', 'Backside bottom turn'];
   }
 
   // Surf — split by intent
