@@ -2408,7 +2408,16 @@ function getTodaysFocus(userProfile, sessions) {
       return {
         technique: focus,
         reason: 'Continuing from your last session',
-        coaching: `Work on ${focus} again — repetition is how it sticks.`,
+        coaching: (() => {
+          const sessionCount = completed.filter(s => s.focus === focus).length;
+          const lastRating = lastSession.rating;
+          if (sessionCount >= 3 && lastRating >= 4) return `${sessionCount} sessions on ${focus}. You're building something real here.`;
+          if (sessionCount >= 3 && lastRating <= 2) return `${focus} has been tough. ${sessionCount} sessions in — this is exactly where most surfers quit. Don't.`;
+          if (sessionCount >= 3) return `${sessionCount} sessions on ${focus}. The body is learning even when it doesn't feel like it.`;
+          if (lastRating >= 4) return `Good session. ${focus} is clicking — show up again and lock it in.`;
+          if (lastRating && lastRating <= 2) return `${focus} was hard. That's not failure — that's the gap closing. Come back.`;
+          return `${focus} is the work right now. One more session builds the pattern.`;
+        })(),
         source: 'session',
         lastNote: lastSession.observation,
       };
@@ -2432,7 +2441,13 @@ function getTodaysFocus(userProfile, sessions) {
     return {
       technique: struggling[0],
       reason: `You've been working on this — keep going`,
-      coaching: `Low ratings mean it's hard. Hard means it's right. One rep at a time.`,
+      coaching: (() => {
+          const count = struggling[1].count;
+          const ratings = struggling[1].ratings;
+          const avg = ratings.length ? (ratings.reduce((a,b) => a+b,0)/ratings.length).toFixed(1) : '?';
+          if (Number(avg) <= 2) return `${count} sessions on ${struggling[0]}, average ${avg}/5. The technique is resisting. That means it matters. Push through.`;
+          return `You keep coming back to ${struggling[0]}. Good. That\'s how plateaus break.`;
+        })(),
       source: 'pattern',
     };
   }
@@ -2457,7 +2472,7 @@ function getTodaysFocus(userProfile, sessions) {
   return {
     technique,
     reason: 'Based on your assessment',
-    coaching: `This is where your progression starts. Own it.`,
+    coaching: null,
     source: 'assessment',
   };
 }
@@ -4680,6 +4695,11 @@ function VoiceInput({ onResult, disabled }) {
       recognition.onerror = (e) => {
         console.warn('Voice error:', e.error);
         setListening(false);
+        if (e.error === 'network') {
+          alert('Voice not available. If you are using Brave, go to brave://settings/privacy and disable "Prevent sites from fingerprinting", then reload.');
+        } else if (e.error === 'not-allowed') {
+          alert('Microphone access denied. Please allow microphone access in your browser settings.');
+        }
       };
       recognition.onend = () => setListening(false);
 
