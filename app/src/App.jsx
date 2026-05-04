@@ -5700,6 +5700,13 @@ export default function SurfCoachAgent() {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // ── TIER STATE ─────────────────────────────────────────────────────────────
+  // Loaded from localStorage for beta — will move to Supabase profiles later
+  // To set manually: localStorage.setItem('coachVasco_tier', 'mycoach') or 'athlete'
+  const [userTier, setUserTier] = useState(() => {
+    try { return localStorage.getItem('coachVasco_tier') || 'free'; } catch { return 'free'; }
+  });
+
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -6101,7 +6108,11 @@ Rules:
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-tier': userTier,
+            'x-user-id': authUser?.id || 'anon',
+          },
           body: JSON.stringify({
             model: 'claude-sonnet-4-6',
             max_tokens: 200,
@@ -6185,9 +6196,13 @@ Rules:
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-tier': userTier,
+          'x-user-id': authUser?.id || 'anon',
+        },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-4-6', // server overrides based on tier
           max_tokens: 2000,
           system: buildSystemPrompt(userLevel, userProfile, apiMessages),
           messages: apiMessages,
@@ -6196,8 +6211,13 @@ Rules:
       const data = await response.json();
       clearInterval(statusInterval);
       setLoadingStatus('');
-      if (data.error) {
-        setMessages([...newMessages, { role: 'assistant', content: `Error: ${data.error.message}` }]);
+      if (data.error === 'LIMIT_REACHED') {
+        const limitMsg = userTier === 'free'
+          ? `You've reached your **10 daily messages** on the Free plan.\n\nUpgrade to **My Coach** (€9/month) for 25 messages/day with Sonnet, full session history, and weekly coaching summaries.`
+          : `You've reached your daily message limit (${data.limit} messages).\n\nUpgrade to **Athlete** (€19/month) for 50 messages/day plus programme builders.`;
+        setMessages([...newMessages, { role: 'assistant', content: limitMsg, isLimitCard: true }]);
+      } else if (data.error) {
+        setMessages([...newMessages, { role: 'assistant', content: `Error: ${data.error.message || data.error}` }]);
       } else {
         const reply = data.content?.[0]?.text || 'Something went wrong. Try again.';
         console.log('[REPLY TAIL]', reply.slice(-400));
@@ -6218,7 +6238,11 @@ Rules:
           try {
             const continueRes = await fetch('/api/chat', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-user-tier': userTier,
+                'x-user-id': authUser?.id || 'anon',
+              },
               body: JSON.stringify({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 2000,
@@ -6401,12 +6425,28 @@ Rules:
               }
             </div>
           )}
+          {/* Tier badge */}
+          <div title={`Plan: ${userTier === 'free' ? 'Free Surfer' : userTier === 'mycoach' ? 'My Coach' : 'Athlete'}`}
+            style={{ fontSize: '10px', color: userTier === 'free' ? 'rgba(241,243,236,0.3)' : userTier === 'mycoach' ? 'rgba(234,234,151,0.7)' : '#EAEA97', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: '100px', border: `1px solid ${userTier === 'free' ? 'rgba(241,243,236,0.1)' : userTier === 'mycoach' ? 'rgba(234,234,151,0.3)' : 'rgba(234,234,151,0.6)'}` }}>
+            {userTier === 'free' ? 'Free' : userTier === 'mycoach' ? 'My Coach' : 'Athlete'}
+          </div>
           <button onClick={startNewChat} title="New chat"
             style={{ background: 'none', border: '1px solid rgba(234,234,151,0.2)', borderRadius: '8px', color: 'rgba(241,243,236,0.5)', cursor: 'pointer', padding: '5px 10px', fontSize: '11px', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.2s' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.5)'; e.currentTarget.style.color = '#EAEA97'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(234,234,151,0.2)'; e.currentTarget.style.color = 'rgba(241,243,236,0.5)'; }}>
             + New
           </button>
+          {/* Feedback button — always visible */}
+          <a
+            href={`https://wa.me/351923394415?text=${encodeURIComponent('Feedback Coach Vasco App: ')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Send feedback via WhatsApp"
+            style={{ background: 'none', border: '1px solid rgba(37,211,102,0.3)', borderRadius: '8px', color: 'rgba(37,211,102,0.6)', cursor: 'pointer', padding: '5px 10px', fontSize: '11px', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.2s', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(37,211,102,0.7)'; e.currentTarget.style.color = 'rgba(37,211,102,1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(37,211,102,0.3)'; e.currentTarget.style.color = 'rgba(37,211,102,0.6)'; }}>
+            💬 Feedback
+          </a>
           {authUser && (
             <button onClick={signOut} title="Sign out"
               style={{ background: 'none', border: '1px solid rgba(241,243,236,0.1)', borderRadius: '8px', color: 'rgba(241,243,236,0.3)', cursor: 'pointer', padding: '5px 10px', fontSize: '11px', fontFamily: "'Inter', 'Helvetica Neue', sans-serif", transition: 'all 0.2s' }}
