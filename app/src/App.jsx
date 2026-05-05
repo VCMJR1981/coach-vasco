@@ -2266,11 +2266,13 @@ function buildSystemPrompt(userLevel, userProfile, messages) {
     }
     const tdLabel = userProfile.trainingDays >= 0 ? trainingDayLabels[userProfile.trainingDays] : 'Not specified';
     const injLabel = userProfile.injuries >= 0 ? injuryLabels[userProfile.injuries] : 'Not specified';
-    const surfAccessLabels = ['Regular coastal surfer', 'Inconsistent coastal surfer', 'Travel surfer (few times/year)', 'Holiday/trip surfer', 'Not surfing currently'];
+    const surfAccessLabels = ['Regular coastal surfer', 'Inconsistent coastal surfer', 'Trip/holiday surfer', 'Not surfing currently'];
     const tripLabels = ['Next 4 weeks', '1–3 months away', '3–6 months away', '6+ months / not planned'];
+    const stanceLabels = ['Regular (left foot forward)', 'Goofy (right foot forward)', 'Not sure yet'];
     const accessLabel = userProfile.surfAccess >= 0 ? surfAccessLabels[userProfile.surfAccess] : 'Not specified';
     const tripLabel = userProfile.tripTimeframe >= 0 ? tripLabels[userProfile.tripTimeframe] : null;
-    prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nSurf Access: ${accessLabel}${tripLabel ? ` | Next trip: ${tripLabel}` : ''}\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\n${userProfile.isHolidaySurfer ? `IMPORTANT: This athlete surfs on holidays/trips only. Never suggest "surf 3x/week" routines. Focus on dry-land prep (surfskate, fitness, strength) between trips and maximising water time when on location.` : ''}${userProfile.isNeverSurfed ? `IMPORTANT: This athlete has never surfed. Focus on foundational fitness, what to expect, and how to prepare for a first surf experience.` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
+    const stanceLabel = userProfile.stance >= 0 ? stanceLabels[userProfile.stance] : null;
+    prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nSurf Access: ${accessLabel}${tripLabel ? ` | Next trip: ${tripLabel}` : ''}${stanceLabel ? `\nStance: ${stanceLabel}` : ''}\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\n${userProfile.isHolidaySurfer ? `IMPORTANT: This athlete surfs on holidays/trips only. Never suggest "surf 3x/week" routines. Focus on dry-land prep (surfskate, fitness, strength) between trips and maximising water time when on location.` : ''}${userProfile.isNeverSurfed ? `IMPORTANT: This athlete has never surfed. Focus on foundational fitness, what to expect, and how to prepare for a first surf experience.` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
   }
 
   // ── SESSION LOG CONTEXT ───────────────────────────────────────────────────
@@ -2891,9 +2893,8 @@ const ASSESSMENT_QUESTIONS = [
     q: "How does surfing fit into your life?",
     opts: [
       "I live near the coast and surf regularly",
-      "I live near the coast but surf when I can — inconsistent",
-      "I have to travel to surf — a few times a year",
-      "I only surf on holidays or dedicated surf trips",
+      "I live near the coast but access is inconsistent",
+      "I surf on trips and holidays — a few times a year",
       "I'm not surfing right now (injury, life, other)",
     ],
     skip_if: { id: "surf_experience", answer: 0 },
@@ -2908,7 +2909,7 @@ const ASSESSMENT_QUESTIONS = [
       const accessIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_access");
       if (answers[expIdx] === 0) return true; // never surfed
       const access = answers[accessIdx];
-      return access === 2 || access === 3 || access === 4; // travel/holiday/not now → skip
+      return access === 2 || access === 3; // holiday/trip or not now → skip
     },
   },
   {
@@ -2920,13 +2921,13 @@ const ASSESSMENT_QUESTIONS = [
       "3–6 months away",
       "More than 6 months / not planned yet",
     ],
-    // shown only for travel/holiday surfers or "prepare for trip" goal
+    // shown only for trip/holiday surfers (access 2)
     skip_if_fn: (answers) => {
       const expIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_experience");
       const accessIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_access");
       if (answers[expIdx] === 0) return true;
       const access = answers[accessIdx];
-      return access !== 2 && access !== 3; // only show for travel/holiday surfers
+      return access !== 2; // only show for trip/holiday surfers
     },
   },
   {
@@ -2996,6 +2997,12 @@ const ASSESSMENT_QUESTIONS = [
     opts: ["Woman", "Man", "Prefer not to answer"],
   },
   {
+    id: "stance",
+    q: "What's your surf stance?",
+    opts: ["Regular (left foot forward)", "Goofy (right foot forward)", "Not sure yet"],
+    skip_if: { id: "surf_experience", answer: 0 },
+  },
+  {
     id: "equipment",
     q: "What equipment do you have access to?",
     custom: "equipment",
@@ -3032,11 +3039,12 @@ function scoreAssessment(answers) {
   const goal = val("goal");                 // 0-4
   const age = val("age");                   // 0-3
   const gender = val("gender");             // 0=woman, 1=man, 2=prefer not
+  const stance = val("stance");             // 0=regular, 1=goofy, 2=not sure, -1 if never surfed
   const equipmentRaw = val("equipment");
 
-  // Derived surf access flags
-  const isHolidaySurfer = surfAccess === 2 || surfAccess === 3; // travel or holiday
-  const isNotSurfingNow = surfAccess === 4;
+  // Derived surf access flags — 0=regular, 1=inconsistent, 2=trip/holiday, 3=not now
+  const isHolidaySurfer = surfAccess === 2;
+  const isNotSurfingNow = surfAccess === 3;
   const isNeverSurfed = exp === 0;
   let equipmentLabel = "Not specified";
   if (equipmentRaw && typeof equipmentRaw === "object") {
@@ -3189,7 +3197,7 @@ function scoreAssessment(answers) {
     "You want to improve everything — good. We'll prioritise what gives you the biggest return first.",
   ][goal >= 0 ? goal : 0];
 
-  return { surfLabel, cstmLevel, levelDesc, levelVasco, scores, priorities, injNote, genderNote, goalNote, equipment, trainingDays, injuries, gender, surfAccess, tripTimeframe, isHolidaySurfer, isNeverSurfed, isNotSurfingNow };
+  return { surfLabel, cstmLevel, levelDesc, levelVasco, scores, priorities, injNote, genderNote, goalNote, equipment, trainingDays, injuries, gender, surfAccess, tripTimeframe, isHolidaySurfer, isNeverSurfed, isNotSurfingNow, stance };
 }
 
 function FitnessQuiz({ onComplete, mode, initialResult }) {
@@ -5894,6 +5902,7 @@ export default function SurfCoachAgent() {
         goal: result.goal,
         surf_access: result.surfAccess,
         trip_timeframe: result.tripTimeframe,
+        stance: result.stance,
       });
     } catch (err) {
       console.error('[Supabase] saveProfile error:', err);
