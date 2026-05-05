@@ -2266,7 +2266,11 @@ function buildSystemPrompt(userLevel, userProfile, messages) {
     }
     const tdLabel = userProfile.trainingDays >= 0 ? trainingDayLabels[userProfile.trainingDays] : 'Not specified';
     const injLabel = userProfile.injuries >= 0 ? injuryLabels[userProfile.injuries] : 'Not specified';
-    prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
+    const surfAccessLabels = ['Regular coastal surfer', 'Inconsistent coastal surfer', 'Travel surfer (few times/year)', 'Holiday/trip surfer', 'Not surfing currently'];
+    const tripLabels = ['Next 4 weeks', '1–3 months away', '3–6 months away', '6+ months / not planned'];
+    const accessLabel = userProfile.surfAccess >= 0 ? surfAccessLabels[userProfile.surfAccess] : 'Not specified';
+    const tripLabel = userProfile.tripTimeframe >= 0 ? tripLabels[userProfile.tripTimeframe] : null;
+    prompt += `\n\n## ATHLETE SURF ASSESSMENT PROFILE\nSurf Level: ${userProfile.surfLabel} (${userProfile.cstmLevel})\nSurf Access: ${accessLabel}${tripLabel ? ` | Next trip: ${tripLabel}` : ''}\nStrength: ${userProfile.scores.strength}% | Endurance: ${userProfile.scores.endurance}% | Training Volume: ${userProfile.scores.training}%\nFocus Areas: ${userProfile.priorities.map(p => p.label).join(', ')}\nEquipment: ${eqLabel}\nDry-land training days: ${tdLabel}\nInjuries/limitations: ${injLabel}\n${userProfile.injNote ? `Recovery note: ${userProfile.injNote}` : ''}\n${userProfile.isHolidaySurfer ? `IMPORTANT: This athlete surfs on holidays/trips only. Never suggest "surf 3x/week" routines. Focus on dry-land prep (surfskate, fitness, strength) between trips and maximising water time when on location.` : ''}${userProfile.isNeverSurfed ? `IMPORTANT: This athlete has never surfed. Focus on foundational fitness, what to expect, and how to prepare for a first surf experience.` : ''}\nTailor ALL advice — exercises, equipment, session structure, intensity — to this exact profile. Never suggest equipment they don't have. Always account for injuries.`;
   }
 
   // ── SESSION LOG CONTEXT ───────────────────────────────────────────────────
@@ -2883,10 +2887,47 @@ const ASSESSMENT_QUESTIONS = [
     skip_if: { id: "surf_experience", answer: 0 },
   },
   {
+    id: "surf_access",
+    q: "How does surfing fit into your life?",
+    opts: [
+      "I live near the coast and surf regularly",
+      "I live near the coast but surf when I can — inconsistent",
+      "I have to travel to surf — a few times a year",
+      "I only surf on holidays or dedicated surf trips",
+      "I'm not surfing right now (injury, life, other)",
+    ],
+    skip_if: { id: "surf_experience", answer: 0 },
+  },
+  {
     id: "surf_sessions",
     q: "How many surf sessions per week on average?",
-    opts: ["0 — not surfing right now", "1–2 sessions", "3–4 sessions", "5 or more"],
-    skip_if: { id: "surf_experience", answer: 0 },
+    opts: ["1–2 sessions", "3–4 sessions", "5 or more"],
+    // shown only for regular/inconsistent surfers (access 0 or 1)
+    skip_if_fn: (answers) => {
+      const expIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_experience");
+      const accessIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_access");
+      if (answers[expIdx] === 0) return true; // never surfed
+      const access = answers[accessIdx];
+      return access === 2 || access === 3 || access === 4; // travel/holiday/not now → skip
+    },
+  },
+  {
+    id: "trip_timeframe",
+    q: "When is your next surf trip or holiday?",
+    opts: [
+      "In the next 4 weeks — I need to be ready fast",
+      "1–3 months away",
+      "3–6 months away",
+      "More than 6 months / not planned yet",
+    ],
+    // shown only for travel/holiday surfers or "prepare for trip" goal
+    skip_if_fn: (answers) => {
+      const expIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_experience");
+      const accessIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_access");
+      if (answers[expIdx] === 0) return true;
+      const access = answers[accessIdx];
+      return access !== 2 && access !== 3; // only show for travel/holiday surfers
+    },
   },
   {
     id: "surfskate",
@@ -2901,12 +2942,20 @@ const ASSESSMENT_QUESTIONS = [
   },
   {
     id: "endurance",
+    // question text is dynamic — rendered in FitnessQuiz based on surf_access
     q: "How long can you surf before you feel physically done?",
+    q_alt: "How would you describe your general fitness level?",
     opts: [
-      "Under 30 minutes — arms and legs give out fast",
-      "30–45 minutes — tired but I finish the session",
+      "Under 30 minutes — I get tired fast",
+      "30–45 minutes — tired but I get through it",
       "60–90 minutes — some fatigue but manageable",
       "90+ minutes — I feel strong throughout",
+    ],
+    opts_alt: [
+      "Not very fit — I get tired quickly",
+      "Moderately fit — I manage but struggle with sustained effort",
+      "Fit — I can handle most activities without issue",
+      "Very fit — sustained effort is no problem",
     ],
   },
   {
@@ -2917,7 +2966,19 @@ const ASSESSMENT_QUESTIONS = [
   {
     id: "fear",
     q: "Do you experience fear or lack of confidence in the water?",
+    q_alt: "How do you feel about surfing in the ocean?",
     opts: ["Yes, regularly — it holds me back", "Sometimes, in bigger or unfamiliar conditions", "Rarely", "Not at all"],
+    opts_alt: ["I'm nervous about it — not sure I can handle the ocean", "A little apprehensive but excited", "Comfortable — I've been in the ocean a lot", "Very comfortable — no concerns"],
+    skip_if: { id: "surf_experience", answer: 0 }, // never surfed uses alt version below
+  },
+  {
+    id: "fear_never",
+    q: "How do you feel about learning to surf in the ocean?",
+    opts: ["Nervous — the ocean feels unpredictable", "A little apprehensive but excited to try", "Comfortable — I spend a lot of time in the water", "Very comfortable — no concerns at all"],
+    skip_if_fn: (answers) => {
+      const expIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_experience");
+      return answers[expIdx] !== 0; // only show for never-surfed
+    },
   },
   {
     id: "goal",
@@ -2959,17 +3020,24 @@ function scoreAssessment(answers) {
   };
 
   const exp = val("surf_experience");       // 0=never, 1=<1yr, 2=1-3yr, 3=3-5yr, 4=5-10yr, 5=10+yr
-  const level = val("surf_level");          // 0-4, -1 if skipped (never surfed)
+  const level = val("surf_level");          // 0-5, -1 if skipped (never surfed)
   const sk = val("surfskate");              // 0=never, 1=some, 2=regular
-  const surfSess = val("surf_sessions");    // 0-3
+  const surfAccess = val("surf_access");    // 0=regular, 1=inconsistent, 2=travel, 3=holiday, 4=not now
+  const surfSess = val("surf_sessions");    // 0-2 (only captured for regular/inconsistent surfers)
   const skSess = val("surfskate_sessions"); // 0-3
-  const endur = val("endurance");           // 0-3
+  const tripTimeframe = val("trip_timeframe"); // 0=4wks, 1=1-3mo, 2=3-6mo, 3=6mo+, -1 if not asked
+  const endur = val("endurance");           // 0-3 (same scale, different question text)
   const pull = val("pullups");              // 0-3
-  const fear = val("fear");                 // 0=yes always, 3=never
+  const fearVal = exp === 0 ? val("fear_never") : val("fear"); // 0=scared, 3=comfortable
   const goal = val("goal");                 // 0-4
   const age = val("age");                   // 0-3
   const gender = val("gender");             // 0=woman, 1=man, 2=prefer not
   const equipmentRaw = val("equipment");
+
+  // Derived surf access flags
+  const isHolidaySurfer = surfAccess === 2 || surfAccess === 3; // travel or holiday
+  const isNotSurfingNow = surfAccess === 4;
+  const isNeverSurfed = exp === 0;
   let equipmentLabel = "Not specified";
   if (equipmentRaw && typeof equipmentRaw === "object") {
     const parts = [];
@@ -3015,18 +3083,24 @@ function scoreAssessment(answers) {
 
   // ── SCORES ───────────────────────────────────────────────────────────────
   const scores = {
-    technique: Math.round(((Math.max(level, 0) / 4) * 0.6 + (Math.min(exp, 5) / 5) * 0.4) * 100),
+    technique: Math.round(((Math.max(level, 0) / 5) * 0.6 + (Math.min(exp, 5) / 5) * 0.4) * 100),
     endurance: Math.round(((endur < 0 ? 0 : endur) / 3) * 100),
     strength:  Math.round(((pull < 0 ? 0 : pull) / 3) * 100),
-    training:  Math.round((((surfSess < 0 ? 0 : surfSess) + (skSess < 0 ? 0 : skSess)) / 6) * 100),
+    training:  Math.round((((surfSess < 0 ? 0 : surfSess) + (skSess < 0 ? 0 : skSess)) / 5) * 100),
   };
 
   // ── PRIORITIES — always minimum 3 with actionable advice ────────────────
   const allPriorities = [
     {
-      active: scores.technique < 50,
+      active: scores.technique < 50 && !isHolidaySurfer && !isNotSurfingNow && !isNeverSurfed,
       label: "Water Time",
       desc: "Your surfing improves fastest in the water — not on dry land. Set a minimum of 2 sessions per week and go in with one specific thing to work on each time. Not just paddling out and hoping.",
+      color: "#4ade80"
+    },
+    {
+      active: (isHolidaySurfer || isNotSurfingNow) && !isNeverSurfed,
+      label: "Pre-Trip Preparation",
+      desc: "You surf in bursts — which means dry-land preparation is your biggest lever. Surfskate, strength, and paddle conditioning between trips will make every day in the water count double. Don't wait until you're on the beach.",
       color: "#4ade80"
     },
     {
@@ -3042,13 +3116,13 @@ function scoreAssessment(answers) {
       color: "#FFB347"
     },
     {
-      active: fear <= 1,
+      active: fearVal <= 1,
       label: "Confidence & Mental Preparation",
       desc: "Fear in the water isn't a personality trait — it's a gap between your current skill and the conditions you're putting yourself in. Two things that work: 1) spend more time in conditions slightly below your limit until they feel comfortable, 2) visualise your session before you paddle out — what you want to do, how the wave looks. This is not optional — it's training.",
       color: "#a78bfa"
     },
     {
-      active: sk === 0 && (goal === 0 || goal === 4),
+      active: sk === 0 && (goal === 0 || goal === 4 || isHolidaySurfer || isNotSurfingNow),
       label: "Start Surfskate",
       desc: "Surfskate is the highest-transfer dry-land training available for surfers. It trains the exact hip rotation, compression-extension timing, and rail-to-rail movement that surfing needs — and you can do it anywhere. Start with 20 min sessions focused on pumping and basic carving before introducing turns.",
       color: "#60a5fa"
@@ -3060,7 +3134,7 @@ function scoreAssessment(answers) {
       color: "#60a5fa"
     },
     {
-      active: scores.training < 30,
+      active: scores.training < 30 && !isHolidaySurfer && !isNotSurfingNow,
       label: "Training Consistency",
       desc: "You're not in the water enough to make real progress. Life happens — but the body needs repetition to build new movement patterns. Even one extra session per week compounded over a year makes a massive difference. Identify one day per week that is non-negotiable surf or surfskate time.",
       color: "#FF6B6B"
@@ -3115,7 +3189,7 @@ function scoreAssessment(answers) {
     "You want to improve everything — good. We'll prioritise what gives you the biggest return first.",
   ][goal >= 0 ? goal : 0];
 
-  return { surfLabel, cstmLevel, levelDesc, levelVasco, scores, priorities, injNote, genderNote, goalNote, equipment, trainingDays, injuries, gender };
+  return { surfLabel, cstmLevel, levelDesc, levelVasco, scores, priorities, injNote, genderNote, goalNote, equipment, trainingDays, injuries, gender, surfAccess, tripTimeframe, isHolidaySurfer, isNeverSurfed, isNotSurfingNow };
 }
 
 function FitnessQuiz({ onComplete, mode, initialResult }) {
@@ -3128,7 +3202,8 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
   const [equipmentSel, setEquipmentSel] = useState({ surfboard: false, surfskate: false, gym: null });
 
   // Build active question list (skip questions based on previous answers)
-  const activeQuestions = ASSESSMENT_QUESTIONS.filter((q, i) => {
+  const activeQuestions = ASSESSMENT_QUESTIONS.filter((q) => {
+    if (q.skip_if_fn) return !q.skip_if_fn(answers);
     if (!q.skip_if) return true;
     const depIdx = ASSESSMENT_QUESTIONS.findIndex(aq => aq.id === q.skip_if.id);
     return answers[depIdx] !== q.skip_if.answer;
@@ -3270,7 +3345,14 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
     );
   }
 
-  return (
+      // Determine if user is a non-active surfer (for dynamic question text)
+      const accessIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_access");
+      const expIdx = ASSESSMENT_QUESTIONS.findIndex(q => q.id === "surf_experience");
+      const isNonActiveSurfer = answers[expIdx] === 0 || answers[accessIdx] === 2 || answers[accessIdx] === 3 || answers[accessIdx] === 4;
+      const currentQ = (isNonActiveSurfer && current.q_alt) ? current.q_alt : current.q;
+      const currentOpts = (isNonActiveSurfer && current.opts_alt) ? current.opts_alt : (current.opts || []);
+
+      return (
     <div style={{ padding: "24px", maxWidth: "560px", margin: "0 auto" }}>
       <div style={{ marginBottom: "28px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -3282,7 +3364,7 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
         </div>
       </div>
 
-      <h2 style={{ fontSize: "20px", fontWeight: "normal", lineHeight: "1.4", marginBottom: "28px" }}>{current.q}</h2>
+      <h2 style={{ fontSize: "20px", fontWeight: "normal", lineHeight: "1.4", marginBottom: "28px" }}>{currentQ}</h2>
 
       {current.custom === 'equipment' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
@@ -3321,7 +3403,7 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
         </div>
       ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
-        {current.opts.map((opt, i) => {
+        {currentOpts.map((opt, i) => {
           const isMulti = current.multi;
           const isActive = isMulti ? multiSelected.includes(i) : selected === i;
           // Disable other options if "None" (index 0) is selected in multi
@@ -3356,7 +3438,7 @@ function FitnessQuiz({ onComplete, mode, initialResult }) {
       )}
 
       {/* Custom input for "Other" in multi-select questions */}
-      {current.multi && multiSelected.includes(current.opts.length - 1) && (
+      {current.multi && multiSelected.includes(currentOpts.length - 1) && (
         <input
           placeholder="Describe your limitation..."
           value={injuryOther}
@@ -5810,6 +5892,8 @@ export default function SurfCoachAgent() {
         injuries: result.injuries,
         injury_note: result.injNote,
         goal: result.goal,
+        surf_access: result.surfAccess,
+        trip_timeframe: result.tripTimeframe,
       });
     } catch (err) {
       console.error('[Supabase] saveProfile error:', err);
