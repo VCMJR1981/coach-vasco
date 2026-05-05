@@ -2603,7 +2603,7 @@ function getLastUnlock() {
 function computeBaselineScore(userProfile) {
   if (!userProfile) return 20;
   const label = userProfile.cstmLevel || '';
-  if (label.includes('Pre-Foundation')) return 18;
+  if (label.includes('Pre-Foundation')) return 10;
   if (label.includes('Level 1–2')) return 30;
   if (label.includes('Level 1')) return 22;
   if (label.includes('Level 2')) return 45;
@@ -6429,6 +6429,7 @@ Rules:
         localStorage.setItem('coachVasco_profile', JSON.stringify(result));
         localStorage.setItem('coachVasco_assessed', '1');
         localStorage.setItem('coachVasco_level', mappedLevel);
+        localStorage.removeItem('coachVasco_surfScore'); // reset score so baseline recomputes from new assessment
       } catch {}
       // Save to Supabase
       if (authUser) saveProfileToSupabase(result, authUser.id);
