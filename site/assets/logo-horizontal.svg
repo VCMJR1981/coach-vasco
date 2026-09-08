@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 120" role="img" aria-label="Concrete Surfers">
+  <title>Concrete Surfers</title>
+  <!-- PLACEHOLDER — replace with the real horizontal logo, keeping this filename.
+       Light/cream version: it sits on the dark header and footer. -->
+  <g fill="#F1F3EC">
+    <path d="M22 32 L100 88 M100 32 L22 88" stroke="#F1F3EC" stroke-width="9" stroke-linecap="round" fill="none" opacity=".85"/>
+    <circle cx="61" cy="60" r="27"/>
+    <circle cx="50" cy="55" r="5.5" fill="#2A2A29"/>
+    <circle cx="72" cy="55" r="5.5" fill="#2A2A29"/>
+    <rect x="54" y="68" width="4.5" height="15" rx="2.2" fill="#2A2A29"/>
+    <rect x="63" y="68" width="4.5" height="15" rx="2.2" fill="#2A2A29"/>
+    <text x="135" y="79" font-family="Bebas Neue, Oswald, Impact, sans-serif" font-size="56" letter-spacing="1.5">CONCRETE SURFERS</text>
+  </g>
+</svg>
