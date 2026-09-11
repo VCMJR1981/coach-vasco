@@ -3,4 +3,5 @@ node_modules/
 *.crdownload
 dist/
 .DS_Store
-app/.env.localweb/f/
+app/.env.local
+web/f/
