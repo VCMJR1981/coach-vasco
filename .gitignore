@@ -1,7 +1,11 @@
-node_modules/
-.env
 *.crdownload
-dist/
 .DS_Store
+.env
 app/.env.local
+dist/
+node_modules/
 web/f/
+web/img/*.jpeg
+web/img/*.jpg
+web/img/*.png
+web/preview.html

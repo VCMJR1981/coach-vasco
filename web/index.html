@@ -25,9 +25,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
+/* Real brand typefaces, self-hosted. Bely Display for pull quotes,
+   Agenda Medium Condensed for labels and nav. Bebas Neue stays the
+   headline face; DM Sans stays body prose (the Agenda cut supplied is
+   condensed, too tight for long paragraphs). */
+@font-face{font-family:'Bely Display';src:url('fonts/BelyDisplay-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Agenda';src:url('fonts/Agenda-MediumCondensed.woff2') format('woff2');font-weight:500;font-display:swap}
+</style>
+<style>
 :root{--bg:#2A2A29;--bg-alt:#1e1e1d;--surface:#242423;--accent:#EAEA97;--cream:#F1F3EC;
 --line:rgba(241,243,236,.14);--line-soft:rgba(241,243,236,.08);--muted:rgba(241,243,236,.62);
---display:'Bebas Neue',Impact,sans-serif;--serif:'DM Serif Display',Georgia,serif;--body:'DM Sans',system-ui,sans-serif;
+--display:'Bebas Neue',Impact,sans-serif;--serif:'Bely Display','DM Serif Display',Georgia,serif;--label:'Agenda','DM Sans',system-ui,sans-serif;--body:'DM Sans',system-ui,sans-serif;
 --pad:clamp(20px,5vw,64px);--max:1180px}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;scroll-padding-top:76px;-webkit-text-size-adjust:100%}
@@ -46,7 +54,7 @@ h2{font-size:clamp(32px,5vw,64px)}
 h3{font-size:clamp(22px,2.7vw,31px)}
 p{max-width:66ch}
 strong{font-weight:500}
-.kicker{font-size:12.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:block}
+.kicker{font-family:var(--label);font-size:13.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:block}
 .lead{font-size:clamp(17.5px,2vw,20px);color:var(--muted);line-height:1.6}
 .muted{color:var(--muted)}
 .btn{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#1a1a19;font-size:15px;font-weight:500;padding:15px 26px;border:1px solid var(--accent);border-radius:2px;cursor:pointer;transition:background .18s,transform .18s;font-family:var(--body)}
@@ -54,12 +62,52 @@ strong{font-weight:500}
 .btn-ghost{background:transparent;color:var(--cream);border-color:var(--line)}
 .btn-ghost:hover{background:rgba(241,243,236,.06);border-color:var(--cream)}
 
+/* ---------- Photography ---------- */
+.hero{position:relative;isolation:isolate}
+.hero-photo{position:absolute;inset:0;z-index:0;overflow:hidden;background:var(--bg)}
+.hero-photo img{width:100%;height:100%;object-fit:cover;object-position:72% 50%}
+.hero-photo::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(100deg,var(--bg) 0%,rgba(42,42,41,.94) 34%,rgba(42,42,41,.55) 62%,rgba(42,42,41,.25) 100%),
+             linear-gradient(to top,var(--bg) 0%,transparent 38%)}
+.hero .wrap{position:relative;z-index:2}
+@media(max-width:860px){
+  .hero-photo img{object-position:68% 40%}
+  .hero-photo::after{background:linear-gradient(to top,var(--bg) 6%,rgba(42,42,41,.82) 46%,rgba(42,42,41,.6) 100%)}
+}
+
+/* full-bleed photo band used as a section break */
+.band-photo{position:relative;z-index:2;height:clamp(240px,42vw,460px);overflow:hidden;background:var(--bg-alt)}
+.band-photo img{width:100%;height:100%;object-fit:cover}
+.band-photo figcaption{position:absolute;left:0;right:0;bottom:0;padding:18px var(--pad);
+  font-family:var(--label);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--cream);
+  background:linear-gradient(to top,rgba(30,30,29,.86),transparent)}
+.band-photo figcaption b{color:var(--accent);font-weight:400}
+
+/* inline photo inside a section */
+.shot-wide{position:relative;z-index:2;margin-top:clamp(26px,3.6vw,42px);border-radius:2px;overflow:hidden;background:var(--surface);aspect-ratio:16/9}
+.shot-wide img{width:100%;height:100%;object-fit:cover}
+.shot-cap{font-family:var(--label);font-size:14px;letter-spacing:.05em;color:var(--muted);margin-top:10px;text-transform:uppercase}
+
+/* pull quote in the real brand serif */
+.pull{font-family:var(--serif);font-size:clamp(24px,3.4vw,40px);line-height:1.18;color:var(--cream);
+  max-width:24ch;margin:clamp(30px,4vw,48px) 0;padding-left:22px;border-left:2px solid var(--accent)}
+
+/* ---------- Rhythm: break the uniform grid ---------- */
+/* problem block: first card runs wide, rest sit under it */
+.prob{grid-template-columns:1fr 1fr}
+.prob>div:first-child{grid-column:1/-1;background:var(--surface)}
+.prob>div:first-child h3{font-size:clamp(23px,2.8vw,32px)}
+/* numbers: loose inline row, not four boxed cells */
+.band{display:flex;flex-wrap:wrap;gap:0 clamp(30px,5vw,72px);background:none;border:0;border-top:1px solid var(--line);padding-top:26px}
+.band>div{background:none;padding:14px 0}
+@media(max-width:620px){.band{gap:0 32px}.band>div{flex:1 0 40%}}
+
 /* Nav */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;height:68px;background:rgba(42,42,41,.85);backdrop-filter:blur(14px);border-bottom:1px solid var(--line-soft)}
 .nav-in{max-width:var(--max);height:100%;margin:0 auto;padding:0 var(--pad);display:flex;align-items:center;justify-content:space-between;gap:20px}
 .nav-logo img{height:26px;mix-blend-mode:screen}
 .nav-links{display:flex;gap:24px}
-.nav-links a{font-size:14.5px;color:var(--muted);transition:color .16s}
+.nav-links a{font-family:var(--label);font-size:15.5px;letter-spacing:.02em;color:var(--muted);transition:color .16s}
 .nav-links a:hover{color:var(--cream)}
 .burger{display:none;background:none;border:0;padding:8px;cursor:pointer}
 .burger span{display:block;width:23px;height:1.5px;background:var(--cream);margin:5px 0;transition:.25s}
@@ -75,7 +123,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;height:68px;background:rgba(
 .hero{padding-top:112px;padding-bottom:clamp(44px,6vw,72px);position:relative;overflow:hidden}
 .hero-ghost{position:absolute;right:-12%;top:6%;width:min(50vw,540px);opacity:.09;mix-blend-mode:screen;pointer-events:none}
 .hero .wrap{position:relative;z-index:2}
-.hero h1{max-width:16ch;text-wrap:balance}
+.hero h1{max-width:19ch;text-wrap:balance}
 .hero-sub{margin-top:22px;font-size:clamp(18px,2.2vw,23px);color:var(--muted);max-width:40ch;line-height:1.45}
 .coach-strip{display:flex;align-items:center;gap:18px;margin-top:28px;padding:16px 20px;border:1px solid var(--line-soft);border-radius:2px;background:var(--surface);max-width:680px}
 .coach-face{width:58px;height:58px;flex:0 0 58px;border-radius:50%;overflow:hidden;background:#333;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:11px;color:var(--muted)}
@@ -378,18 +426,18 @@ section>.wrap{position:relative;z-index:2}
 
 <!-- HERO -->
 <header class="hero" id="top">
-  <img src="Logo_CS_main_yellow.png" alt="" class="hero-ghost" aria-hidden="true">
-  <span class="tex tex-hatch hero-hatch mask-l" aria-hidden="true"></span>
-  <span class="tex tex-dots hero-dots mask-r" aria-hidden="true"></span>
+  <div class="hero-photo" aria-hidden="true">
+    <img src="img/hero-surfskate-sunset.jpg" alt="" loading="eager" fetchpriority="high"
+         onerror="this.closest('.hero-photo').style.display='none'">
+  </div>
   <div class="wrap">
     <div class="hero-rule rv"></div>
     <h1 class="rv">You've been surfing for years.<span class="h1b">You're still doing the same thing.</span></h1>
     <p class="hero-sub rv">The problem isn't effort. Nobody has ever told you what specifically is blocking you.</p>
     <div class="coach-strip rv">
       <div class="coach-face">
-        <!-- REPLACE: add vasco.jpg (square, 200px+) and uncomment -->
-        <!-- <img src="vasco.jpg" alt="Vasco Rodrigues"> -->
-        PHOTO
+        <img src="img/vasco.jpg" alt="Vasco Rodrigues" loading="lazy"
+             onerror="this.remove()">
       </div>
       <p><b>Vasco Rodrigues</b>Sport scientist and physiologist. Surf, surfskate and surf fitness coach. The only official Carver Skateboards coach in Europe and Surfset Fitness Master Trainer.</p>
     </div>
@@ -436,29 +484,13 @@ section>.wrap{position:relative;z-index:2}
   </div>
 </section>
 
-<div class="swell-wrap" aria-hidden="true">
-  <div class="wrap">
-    <svg class="swell" viewBox="0 0 1180 64" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <g stroke-linecap="round" fill="none">
-        <path d="M40 34 C120 -2 200 -2 280 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".85"/>
-        <path d="M300 34 C380 -2 460 -2 540 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".85"/>
-        <path d="M560 34 C640 -2 720 -2 800 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".6"/>
-        <path d="M820 34 C900 -2 980 -2 1060 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".4"/>
-        <path d="M10 58 C110 26 210 26 310 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".28"/>
-        <path d="M330 58 C430 26 530 26 630 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".22"/>
-        <path d="M650 58 C750 26 850 26 950 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".16"/>
-        <path d="M970 58 C1040 34 1110 34 1170 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".12"/>
-      </g>
-    </svg>
-  </div>
-</div>
 
 <!-- RESULTS -->
 <section id="results" class="alt">
   <div class="wrap">
     <div class="mark rv"><i>02</i><span class="kicker">Results</span></div>
     <h2 class="rv">Five years. Twenty retreats. Every one full.</h2>
-    <p class="lead rv" style="margin-top:16px">The numbers are real and the retreats sell out. But numbers don't show you how the method works — so underneath them are two surfers in full.</p>
+    <p class="lead rv" style="margin-top:16px">The numbers are real and the retreats sell out. But numbers don't show you how the method works, so underneath them are two surfers in full.</p>
     <div class="band">
       <div class="rv"><b>1,000+</b><span>Surfskate clients coached</span></div>
       <div class="rv"><b>100+</b><span>Online coaching clients</span></div>
@@ -479,7 +511,7 @@ section>.wrap{position:relative;z-index:2}
       <dl>
         <dt>What was blocking him</dt><dd>The timing and the consistency of his pop-up. Everything downstream was waiting on a start that didn't arrive the same way twice.</dd>
         <dt>What we trained</dt><dd>Once the pop-up itself was there, specific surf fitness exercises and surfskate drills built the timing and the power behind it.</dd>
-        <dt>What changed</dt><dd>Good timing and clean technique. He goes straight to the wall now, and sets his position for what comes next — pop-up into trim, bottom turn into top turn.</dd>
+        <dt>What changed</dt><dd>Good timing and clean technique. He goes straight to the wall now, and sets his position for what comes next: pop-up into trim, bottom turn into top turn.</dd>
         <dt>Why the wave pool matters</dt><dd>Every other before-and-after in surf coaching compares two different waves, so you can't tell what changed. In a pool the wave is identical. Whatever is different is the surfer.</dd>
       </dl>
     </article>
@@ -493,8 +525,8 @@ section>.wrap{position:relative;z-index:2}
       </div>
       <dl>
         <dt>What was blocking her</dt><dd>Her pop-up was inconsistent and had no balance in it. She was also surfskating in the opposite stance to the one she surfs, so the training on land was pulling against the water.</dd>
-        <dt>What we trained</dt><dd>We changed her stance first, then developed the movement pattern and the specific power it needs — on land, before it was tested in the water.</dd>
-        <dt>What changed</dt><dd>She pops up without missing waves. That freed her attention for what comes next — pumping for speed, and the first real turns.</dd>
+        <dt>What we trained</dt><dd>We changed her stance first, then developed the movement pattern and the specific power it needs, on land, before it was tested in the water.</dd>
+        <dt>What changed</dt><dd>She pops up without missing waves. That freed her attention for what comes next: pumping for speed, and the first real turns.</dd>
       </dl>
     </article>
   </div>
@@ -502,47 +534,45 @@ section>.wrap{position:relative;z-index:2}
 
 <!-- METHOD -->
 <section id="method">
-  <span class="tex tex-stripe method-stripe mask-r" aria-hidden="true"></span>
   <div class="wrap">
     <div class="mark rv"><i>03</i><span class="kicker">The Concrete Surfers Training Method</span></div>
     <h2 class="rv">Great surfing comes from linking each maneuver to the next, keeping the speed and the control.</h2>
-    <p class="lead rv" style="margin-top:16px">A good ride isn't a list of maneuvers. It's each one feeding the next: the way a turn finishes decides how much speed and control you carry into the one after it. That connection is what we call the link, and it's what we train. When you get tired, or the wave gets bigger and faster, the maneuver itself usually still happens — what goes first is the connection between them.</p>
+    <p class="lead rv" style="margin-top:16px">A good ride isn't a list of maneuvers. It's each one feeding the next: the way a turn finishes decides how much speed and control you carry into the one after it. That connection is what we call the link, and it's what we train. When you get tired, or the wave gets bigger and faster, the maneuver itself usually still happens. What goes first is the connection between them.</p>
     <p class="lead rv" style="margin-top:14px">Every link runs the same four phases, in order. Knowing which phase is failing is what turns "get better at surfing" into something you can actually train.</p>
 
-    <div class="line-run rv" aria-hidden="true">
-      <svg viewBox="0 0 480 52" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <path d="M0,26 C40,-6 80,58 120,26 C160,-6 200,58 240,26 C280,-6 320,58 360,26 C400,-6 440,58 480,26"
-              stroke="#F1F3EC" stroke-opacity=".55" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>
-      <span class="dot"></span>
-    </div>
 
     <div class="mgrid">
-      <div class="rv" data-n="01"><span class="n">Phase 01</span><h4>Read</h4><p>What the wave is offering right now — the lip, the pocket, the shoulder — and choosing the moment to commit. Timing lives here.</p></div>
+      <div class="rv" data-n="01"><span class="n">Phase 01</span><h4>Read</h4><p>What the wave is offering right now: the lip, the pocket, the shoulder. Then choosing the moment to commit. Timing lives here.</p></div>
       <div class="rv" data-n="02"><span class="n">Phase 02</span><h4>Commit</h4><p>You go, and you perform the maneuver. Governed by where your weight goes: in the pop-up the front foot takes around 72% of the landing load.</p></div>
       <div class="rv" data-n="03"><span class="n">Phase 03</span><h4>Exit</h4><p>You land, or settle back onto the rail. This is where maneuvers are blown. A move isn't yours until the exit is controlled.</p></div>
       <div class="rv" data-n="04"><span class="n">Phase 04</span><h4>Link forward</h4><p>The exit sets up the next read. Clean out, eyes already on the next section, no dead moment.</p></div>
     </div>
 
+    <p class="pull rv">Most coaching drills the mechanics, because the mechanics are what you can see.</p>
+
     <div class="cascade rv">
-      <p>Get the read wrong and the next three phases all look broken — when none of them were the problem.</p>
+      <p>Get the read wrong and the next three phases all look broken, when none of them were the problem.</p>
       <p class="small">This is why we always check upstream first. A late read puts you in the wrong place, and from there the mechanics, the exit and the next turn all look wrong. Work on the read and the other three often disappear on their own. Most coaching drills the mechanics, because the mechanics are what you can see.</p>
     </div>
 
     <div style="margin-top:clamp(32px,4.5vw,50px)">
       <h3 class="rv">Six ways a link breaks</h3>
       <p class="rv muted" style="margin-top:9px;font-size:16px;margin-bottom:6px">Four live in the phases above. Two sit underneath everything and degrade all four at once.</p>
-      <div class="acc rv"><button>The read — right wave, wrong moment</button><div class="body"><p>Wrong wave, wrong section, or the right section read a beat too late to use it. The fault happened before the maneuver even started. Wave selection and timing separate surfers about as much as physical fitness does. First on the list on purpose — an uncaught read problem costs you the next three answers.</p></div></div>
+      <div class="acc rv"><button>The read — right wave, wrong moment</button><div class="body"><p>Wrong wave, wrong section, or the right section read a beat too late to use it. The fault happened before the maneuver even started. Wave selection and timing separate surfers about as much as physical fitness does. First on the list on purpose. An uncaught read problem costs you the next three answers.</p></div></div>
       <div class="acc rv"><button>The commitment — right read, wrong movement</button><div class="body"><p>You were in the right place and the movement itself was wrong. Usually weight in the wrong place: foot weighting, posture, how the rail is loaded. This is the one people assume is always the problem. Often it isn't.</p></div></div>
       <div class="acc rv"><button>The exit — the maneuver happened, the landing lost it</button><div class="body"><p>Over the nose, off the tail, or straight out the back. The move existed and then the finish threw it away. Because the exit is what feeds the next read, a sloppy exit costs you more than the one turn.</p></div></div>
-      <div class="acc rv"><button>The join — the turn ended and nothing followed</button><div class="body"><p>Within a ride: a dead moment, a late next read, speed bled on the way out. Across a session: one error dragging down the wave after it. This is the one surfers feel most and can name least — the surfing that doesn't connect.</p></div></div>
-      <div class="acc rv"><button>Capacity — you can't produce or hold the force</button><div class="body"><p>Not a technique problem at all. If you can't generate the force the link needs, the read comes late, the movement is weak, the exit is heavy and the recovery is slow. One cause, four symptoms. Rotational power and balance are among the clearest measured differences between intermediate and advanced surfers, which is why surf strength training isn't optional extra work — it's part of the diagnosis.</p></div></div>
-      <div class="acc rv"><button>Overthinking — you're monitoring a movement that should run itself</button><div class="body"><p>You know what to do and you're consciously checking yourself doing it. It gets worse under fear and fatigue, which in surfing is most of the time. This is why we coach with feel and external cues — "drive off the section", not "bend your knees thirty degrees". Skills built on feel survive pressure. Skills built on conscious rules break exactly when it matters.</p></div></div>
+      <div class="acc rv"><button>The join — the turn ended and nothing followed</button><div class="body"><p>Within a ride: a dead moment, a late next read, speed bled on the way out. Across a session: one error dragging down the wave after it. This is the one surfers feel most and can name least: the surfing that doesn't connect.</p></div></div>
+      <div class="acc rv"><button>Capacity — you can't produce or hold the force</button><div class="body"><p>Not a technique problem at all. If you can't generate the force the link needs, the read comes late, the movement is weak, the exit is heavy and the recovery is slow. One cause, four symptoms. Rotational power and balance are among the clearest measured differences between intermediate and advanced surfers, which is why surf strength training is part of the diagnosis, not optional extra work.</p></div></div>
+      <div class="acc rv"><button>Overthinking — you're monitoring a movement that should run itself</button><div class="body"><p>You know what to do and you're consciously checking yourself doing it. It gets worse under fear and fatigue, which in surfing is most of the time. This is why we coach with feel and external cues: "drive off the section" rather than "bend your knees thirty degrees". Skills built on feel survive pressure. Skills built on conscious rules break exactly when it matters.</p></div></div>
     </div>
 
     <div style="margin-top:clamp(30px,4vw,46px)">
       <h3 class="rv">One method, three environments</h3>
       <p class="rv muted" style="margin-top:9px;font-size:16px">Each does something the other two can't. We're honest about where each one stops.</p>
+      <figure class="shot-wide rv">
+        <img src="img/surf-lesson-beach.jpg" alt="A coaching group spread out on the sand running pop-up drills before paddling out" loading="lazy" onerror="this.closest('.shot-wide').remove()">
+      </figure>
+      <p class="shot-cap rv">On the sand before the water. The movement is built where it can be corrected.</p>
       <div class="env">
         <div class="rv"><h4>Surf</h4><p>The real thing, and the only true test of whether anything transferred.</p><p class="limit">Its limit: access. Riding is roughly 8% of a session, so reps are scarce.</p></div>
         <div class="rv"><h4>Surfskate</h4><p>The movement of the link, at a volume the ocean can't give you. Hundreds of turns an hour instead of ten.</p><p class="limit">Its limit: there's no wave. It can't train reading, timing or decisions. Those come only from water.</p></div>
@@ -559,7 +589,6 @@ section>.wrap{position:relative;z-index:2}
 
 <!-- WORK WITH US -->
 <section id="work" class="alt">
-  <span class="tex tex-hatch work-hatch mask-l" aria-hidden="true"></span>
   <div class="wrap">
     <div class="mark rv"><i>04</i><span class="kicker">Work with us</span></div>
     <h2 class="rv">Three ways in. One of them is free.</h2>
@@ -613,7 +642,7 @@ section>.wrap{position:relative;z-index:2}
     </div>
 
     <div class="single rv">
-      <p><b>Just want one session?</b> An hour, online, one to one — surf video analysis, surfskate video analysis, or a coached surf fitness session. Book one when you need it.</p>
+      <p><b>Just want one session?</b> An hour, online, one to one: surf video analysis, surfskate video analysis, or a coached surf fitness session. Book one when you need it.</p>
       <span class="amt">€80</span>
     </div>
 
@@ -627,9 +656,9 @@ section>.wrap{position:relative;z-index:2}
     <div class="acc big rv" style="margin-top:clamp(20px,2.6vw,32px);border-top:1px solid var(--line-soft)">
       <button>What the 12-week block actually looks like</button>
       <div class="body">
-        <p>It starts with two assessments, not one. A physical assessment tells us what your body can currently produce and where it gives out. Footage tells us where your surfing is — and we're as interested in what you're already good at, because the plan protects those as much as it develops the rest.</p>
+        <p>It starts with two assessments, not one. A physical assessment tells us what your body can currently produce and where it gives out. Footage tells us where your surfing is. We're as interested in what you're already good at, because the plan protects those as much as it develops the rest.</p>
         <p>Then it's built around the waves you're going to meet. A trip to a soft, slow beach break and a trip to a fast, hollow reef ask completely different things of you, so the twelve weeks are shaped by where you're going next, not by a generic template.</p>
-        <p>If you've trained with us before, we go back to the footage from your last trip. What went wrong there is the clearest possible brief for what to train before the next one. That's the whole point of the block — you stop arriving and starting over.</p>
+        <p>If you've trained with us before, we go back to the footage from your last trip. What went wrong there is the clearest possible brief for what to train before the next one. That's the whole point of the block. You stop arriving and starting over.</p>
         <p>Every four weeks you send new footage and we reassess. Two re-film cycles per assessment, so you can see whether the movement actually changed rather than taking our word for it.</p>
       </div>
     </div>
@@ -637,7 +666,7 @@ section>.wrap{position:relative;z-index:2}
     <!-- ONE FORM -->
     <div class="form-shell rv" id="form">
       <h3>One form. Tell us what you're after.</h3>
-      <p>Everything here comes to the same place, and you'll hear back within 24 hours — 48 for a First Look, because we watch the clip before replying.</p>
+      <p>Everything here comes to the same place, and you'll hear back within 24 hours. 48 for a First Look, because we watch the clip before replying.</p>
       <form name="work-with-us" method="POST" data-netlify="true" netlify-honeypot="bot-field" action="/">
         <input type="hidden" name="form-name" value="work-with-us">
         <input type="hidden" name="subject" value="Website enquiry — Concrete Surfers">
@@ -703,30 +732,18 @@ section>.wrap{position:relative;z-index:2}
   </div>
 </section>
 
-<div class="swell-wrap" aria-hidden="true">
-  <div class="wrap">
-    <svg class="swell" viewBox="0 0 1180 64" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <g stroke-linecap="round" fill="none">
-        <path d="M40 34 C120 -2 200 -2 280 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".85"/>
-        <path d="M300 34 C380 -2 460 -2 540 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".85"/>
-        <path d="M560 34 C640 -2 720 -2 800 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".6"/>
-        <path d="M820 34 C900 -2 980 -2 1060 34" stroke="#EAEA97" stroke-width="2.5" stroke-dasharray="34 30" opacity=".4"/>
-        <path d="M10 58 C110 26 210 26 310 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".28"/>
-        <path d="M330 58 C430 26 530 26 630 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".22"/>
-        <path d="M650 58 C750 26 850 26 950 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".16"/>
-        <path d="M970 58 C1040 34 1110 34 1170 58" stroke="#F1F3EC" stroke-width="2" stroke-dasharray="28 34" opacity=".12"/>
-      </g>
-    </svg>
-  </div>
-</div>
+
+<figure class="band-photo">
+  <img src="img/surfskate-sunset-group.jpg" alt="A surfskate session on the seafront at sunset, cones laid out for drills" loading="lazy" onerror="this.closest('.band-photo').remove()">
+  <figcaption><b>Sunset session</b> &nbsp;Cones down, one turn at a time.</figcaption>
+</figure>
 
 <!-- RETREATS -->
 <section id="retreat">
-  <span class="tex tex-dots retreat-dots mask-b" aria-hidden="true"></span>
   <div class="wrap">
     <div class="mark rv"><i>05</i><span class="kicker">Portugal 2026 · Sri Lanka 2027</span></div>
     <h2 class="rv">A week where the method runs every day.</h2>
-    <p class="lead rv" style="margin-top:16px">Surf, surfskate, video analysis and mental training in one programme. Eight participants maximum — below that number the coaching works, above it it doesn't. Run together with <strong>Kim Chareonbood (Fearless Surfer)</strong> since day one: Vasco on surf, surfskate and video, Kim on mental training and breathwork.</p>
+    <p class="lead rv" style="margin-top:16px">Surf, surfskate, video analysis and mental training in one programme. Eight participants maximum. Below that number the coaching works, above it it doesn't. Run together with <strong>Kim Chareonbood (Fearless Surfer)</strong> since day one: Vasco on surf, surfskate and video, Kim on mental training and breathwork.</p>
     <p class="rv" style="margin-top:12px;font-size:15.5px;color:rgba(241,243,236,.5);max-width:62ch">The two beginner retreats are women only. The Intermediate week and Sri Lanka are open to women and men.</p>
 
     <div class="two" style="margin-top:clamp(28px,4vw,46px)">
@@ -855,9 +872,13 @@ section>.wrap{position:relative;z-index:2}
   </div>
 </section>
 
+<figure class="band-photo">
+  <img src="img/retreat-aljezur-group.jpg" alt="A retreat group carrying boards down the boardwalk to the beach at Aljezur" loading="lazy" onerror="this.closest('.band-photo').remove()">
+  <figcaption><b>Aljezur</b> &nbsp;Eight people, one week, boards down to the sand.</figcaption>
+</figure>
+
 <!-- STORY -->
 <section id="story" class="alt">
-  <span class="tex tex-stripe story-stripe mask-l" aria-hidden="true"></span>
   <div class="wrap">
     <div class="mark rv"><i>06</i><span class="kicker">Where the method came from</span></div>
     <h2 class="rv">It started at the oldest surf club in Portugal.</h2>
