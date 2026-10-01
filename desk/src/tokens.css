@@ -1,0 +1,13 @@
+/* COPY of css/tokens.css from the website repository (concrete-surfers-website-2026).
+   Do not edit here: change the website file, then copy it over.
+   `npm run build` fails if this copy and the live website file differ. */
+:root{
+/* colour */
+--bg:#2A2A29;--bg-alt:#1e1e1d;--surface:#242423;--accent:#EAEA97;--accent-hover:#f4f4b4;--on-accent:#1a1a19;--cream:#F1F3EC;
+--line:rgba(241,243,236,.14);--line-soft:rgba(241,243,236,.08);--muted:rgba(241,243,236,.62);--faint:rgba(241,243,236,.5);
+/* type */
+--display:'Bebas Neue',Impact,sans-serif;--serif:'Bely Display','DM Serif Display',Georgia,serif;--label:'Agenda','DM Sans',system-ui,sans-serif;--body:'DM Sans',system-ui,sans-serif;
+--fs-h1:clamp(42px,7.6vw,104px);--fs-h2:clamp(32px,5vw,64px);--fs-h3:clamp(22px,2.7vw,31px);--fs-lead:clamp(17.5px,2vw,20px);
+--fs-body:17px;--fs-btn:15px;--fs-input:16px;--fs-small:15.5px;--fs-optin:14.5px;--fs-kicker:13.5px;--fs-hint:13.5px;--fs-label:12.5px;
+/* space and shape */
+--pad:clamp(20px,5vw,64px);--max:1180px;--section-y:clamp(52px,7.5vw,96px);--gap-field:17px;--radius:2px}
