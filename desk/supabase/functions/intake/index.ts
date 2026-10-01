@@ -16,11 +16,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SNAPSHOT_LIMIT = 5;
-const PRODUCTS = ['snapshot', 'snapshot_skate', 'diagnostic', 'single', 'block', 'classes',
+const PRODUCTS = ['snapshot', 'snapshot_skate', 'diagnostic', 'single', 'block', 'program', 'pro', 'classes',
   'retreat', 'cert', 'workshop', 'unsure'];
 const PRODUCT_NAMES: Record<string, string> = {
   snapshot: 'Snapshot', snapshot_skate: 'Surfskate Snapshot', diagnostic: 'Diagnostic',
-  single: 'Single session', block: '12-week block', classes: 'Surfskate classes',
+  single: 'Single session', block: '12-week block', program: 'The Concrete Program',
+  pro: 'The Concrete Program PRO', classes: 'Surfskate classes',
   retreat: 'Retreat', cert: 'Coach certification', workshop: 'Workshop', unsure: 'Not sure yet',
 };
 const CREDIT = ['first name', 'first name and instagram', 'anonymous'];

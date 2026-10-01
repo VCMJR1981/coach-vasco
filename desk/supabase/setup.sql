@@ -51,7 +51,7 @@ create table if not exists public.submissions (
   client_id uuid not null references public.clients(id) on delete cascade,
   form text not null,
   product text not null check (product in
-    ('snapshot','snapshot_skate','diagnostic','single','block','classes','retreat','cert','workshop','unsure')),
+    ('snapshot','snapshot_skate','diagnostic','single','block','program','pro','classes','retreat','cert','workshop','unsure')),
   name text not null,
   email text not null,
   phone text,

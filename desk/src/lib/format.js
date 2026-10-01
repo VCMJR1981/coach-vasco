@@ -22,7 +22,8 @@ export function firstName(name) {
 
 export const PRODUCTS = {
   snapshot: 'Snapshot', snapshot_skate: 'Surfskate Snapshot', diagnostic: 'Diagnostic',
-  single: 'Single session', block: '12-week block', classes: 'Surfskate classes',
+  single: 'Single session', block: '12-week block', program: 'The Concrete Program',
+  pro: 'The Concrete Program PRO', classes: 'Surfskate classes',
   retreat: 'Retreat', cert: 'Coach certification', workshop: 'Workshop', unsure: 'Not sure yet',
 };
 
