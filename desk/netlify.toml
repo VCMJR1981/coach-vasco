@@ -1,0 +1,26 @@
+# Coach desk on Netlify. In Netlify set "Base directory" to `desk`;
+# everything else is read from here.
+[build]
+  command = "npm run build"
+  publish = "dist"
+  # The free plan has 300 credits a month and every production deploy costs
+  # some, so skip the build when nothing in desk/ changed. The first build,
+  # and a manual retry of the same commit, always run.
+  ignore = "[ \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# One-page app: every path is served by index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    X-Robots-Tag = "noindex, nofollow"
